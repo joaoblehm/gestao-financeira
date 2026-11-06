@@ -112,7 +112,7 @@ button[onclick*="Clear"], button[onclick*="confirmClear"], button[onclick*="Excl
 .cat-outro { background-color: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
 
 /* ============================================================================ */
-/* ESTRUTURA E LAYOUT GERAL                                                     */
+/* ESTRUTURA, LAYOUT GERAL & ALERTAS RESPONSIVOS                                 */
 /* ============================================================================ */
 header, .app-header, .top-actions-container {
     display: flex;
@@ -146,6 +146,25 @@ header, .app-header, .top-actions-container {
     overflow: hidden;
     position: relative;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+/* Contor de Alertas Dinâmicos (Responsivo Mobile) */
+#dynamicAlertsContainer {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+}
+
+#dynamicAlertsContainer > div {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 /* ============================================================================ */
