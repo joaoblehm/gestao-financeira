@@ -1,5 +1,5 @@
 // ============================================================================
-// INICIALIZAÇÃO DA APLICAÇÃO & NAVEGAÇÃO - app.js
+// MÓDULO DE INICIALIZAÇÃO DA APLICAÇÃO & NAVEGAÇÃO - app.js
 // ============================================================================
 
 window.expenses = window.expenses || [];
@@ -7,9 +7,11 @@ window.cards = window.cards || [];
 window.salaryConfigs = window.salaryConfigs || [];
 window.extraIncomes = window.extraIncomes || [];
 
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Carrega os dados do localStorage/Supabase
-    loadData();
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Aguarda carregar todos os dados da nuvem do Supabase (com fallback local)
+    if (typeof loadData === 'function') {
+        await loadData();
+    }
     
     // 2. Sincroniza o seletor de mês global com o calendário estilo Windows se disponível
     let globalMonth = document.getElementById('globalMonth');
@@ -32,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // 3. Renderiza o aplicativo completo
+    // 3. Renderiza o aplicativo completo já com os dados vindos da nuvem
     renderApp();
     if (typeof loadSalaryConfig === 'function') loadSalaryConfig();
     
