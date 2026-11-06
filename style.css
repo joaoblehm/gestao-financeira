@@ -1,5 +1,5 @@
 /* ============================================================================ */
-/* TEMA DARK PREMIUM (CORREÇÃO DE RESPONSIVIDADE MOBILE) - style.css            */
+/* TEMA DARK PREMIUM (ESTADO ATIVO DAS ABAS & CORREÇÃO MOBILE) - style.css      */
 /* ============================================================================ */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -21,7 +21,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* ============================================================================ */
-/* BOTÕES E NAVEGAÇÃO                                                           */
+/* BOTÕES E NAVEGAÇÃO POR ABAS                                                  */
 /* ============================================================================ */
 button, .btn {
     cursor: pointer;
@@ -45,7 +45,7 @@ button:active {
     transform: scale(0.97);
 }
 
-/* Abas de Navegação Superiores */
+/* Estado padrão dos botões de navegação (abas inativas) */
 .nav-tabs button, .tabs-container button, header button {
     background-color: #0b132b;
     border-color: #1e293b;
@@ -57,13 +57,15 @@ button:active {
     color: #f1f5f9;
 }
 
-/* Aba Ativa */
+/* ESTADO ATIVO DA ABA SELECIONADA (Destaque em Verde Vibrante com Brilho) */
 .nav-tabs button.active, .tabs-container button.active, 
-.nav-tabs button[aria-selected="true"] {
-    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-    color: #ffffff;
-    border-color: #34d399;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+.nav-tabs button[aria-selected="true"],
+button.tab-active, [id*="tab"].active {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+    color: #ffffff !important;
+    border-color: #34d399 !important;
+    font-weight: 600 !important;
+    box-shadow: 0 0 18px rgba(16, 185, 129, 0.4) !important;
 }
 
 /* Cores de Botões Específicos */
@@ -191,7 +193,6 @@ input:focus, select:focus, textarea:focus {
         padding: 8px;
     }
 
-    /* Botões do topo e navegação viram blocos empilhados ajustados */
     .header-buttons, .top-buttons-bar, .nav-tabs, .tabs-container {
         flex-direction: column;
         align-items: stretch;
@@ -201,26 +202,22 @@ input:focus, select:focus, textarea:focus {
         width: 100% !important;
     }
 
-    /* Corrige o transbordo nos botões de Salário e Renda */
     div[class*="flex"] > button, .card-stat button, .stat-card button {
         max-width: 100%;
         font-size: 0.82rem;
         padding: 0 10px;
     }
 
-    /* Ajuste de títulos longos como em Contas da Casa para não quebrar a caixa */
     h2, h3, .text-xl, .text-lg {
         font-size: 1.1rem !important;
         word-break: break-word;
     }
 
-    /* Garante que os cartões de resumo e blocos internos respeitam as margens */
     .grid-resumo, .stats-container, .dashboard-cards {
         grid-template-columns: 1fr;
         gap: 12px;
     }
 
-    /* Adiciona indicação visual lateral nas tabelas para scroll horizontal mais intuitivo */
     .table-responsive, .table-container {
         border-right: 3px solid #10b981;
     }
