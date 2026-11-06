@@ -1,5 +1,5 @@
 /* ============================================================================ */
-/* TEMA DARK PREMIUM (PRETO, VERDE & CORES DIVERTIDAS) - style.css              */
+/* TEMA DARK PREMIUM (PRETO, VERDE & BOTÕES AJUSTADOS) - style.css              */
 /* ============================================================================ */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -10,55 +10,55 @@ body {
     background-color: #050811; /* Preto profundo / Dark imersivo */
     color: #f1f5f9;
     margin: 0;
-    padding: 16px;
+    padding: 20px;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1) hue-rotate(90deg); /* Destaque verde/divertido no calendário */
+    filter: invert(1) hue-rotate(90deg);
     cursor: pointer;
 }
 
 /* ============================================================================ */
-/* CABEÇALHO E BOTÕES SUPERIORES RESPONSIVOS                                    */
+/* CABEÇALHO E BARRA DE NAVEGAÇÃO                                               */
 /* ============================================================================ */
 header, .app-header, .top-actions-container {
     display: flex;
     flex-direction: column;
     gap: 16px;
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
-.header-buttons, .top-buttons-bar, .flex.gap-2 {
+/* Barras de navegação e botões superiores em grelha controlada (sem esticar) */
+.header-buttons, .top-buttons-bar, .nav-tabs, .tabs-container {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    width: 100%;
+    align-items: center;
 }
 
-.header-buttons button, .top-buttons-bar button, header button {
-    flex: 1;
-    min-width: 130px;
-}
-
-/* Navegação por abas com verde vivo nos ativos */
-.nav-tabs, .tabs-container, .flex.gap-2.mb-6 {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    width: 100%;
-}
-
-.nav-tabs button, .tabs-container button {
-    flex: 1;
-    min-width: 140px;
-    text-align: center;
+/* Estilo base para botões de navegação e topo (tamanho natural, sem block esticado) */
+.nav-tabs button, .tabs-container button, .header-buttons button, .top-buttons-bar button {
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
-    background-color: #0b1329;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
     border: 1px solid #1e293b;
+    background-color: #0b132b;
     color: #94a3b8;
+    transition: all 0.2s ease;
+}
+
+.nav-tabs button:hover, .tabs-container button:hover {
+    border-color: #334155;
+    color: #f1f5f9;
 }
 
 /* Estado ativo das abas com toque verde vibrante */
@@ -67,7 +67,7 @@ header, .app-header, .top-actions-container {
     background: linear-gradient(135deg, #059669 0%, #10b981 100%);
     color: #ffffff;
     border-color: #34d399;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
 }
 
 /* ============================================================================ */
@@ -75,26 +75,26 @@ header, .app-header, .top-actions-container {
 /* ============================================================================ */
 .grid-resumo, .stats-container, .dashboard-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 16px;
     width: 100%;
     margin-bottom: 24px;
 }
 
 .card-stat, .stat-card {
-    background: #0b132b; /* Preto azulado elegante */
+    background: #0b132b;
     border: 1px solid #1e293b;
     border-radius: 14px;
     padding: 20px;
     min-width: 0;
     overflow: hidden;
     position: relative;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
     transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .card-stat:hover, .stat-card:hover {
-    border-color: #10b981; /* Borda verde ao passar o mouse */
+    border-color: #10b981;
     transform: translateY(-2px);
 }
 
@@ -121,7 +121,7 @@ table {
 
 th {
     background-color: #050811;
-    color: #10b981; /* Cabeçalhos em verde vibrante */
+    color: #10b981;
     font-weight: 600;
     font-size: 0.8rem;
     text-transform: uppercase;
@@ -142,7 +142,7 @@ tbody tr {
 }
 
 tbody tr:hover {
-    background-color: rgba(16, 185, 129, 0.05); /* Leve toque verde no hover da linha */
+    background-color: rgba(16, 185, 129, 0.05);
 }
 
 tbody tr:last-child td {
@@ -150,24 +150,29 @@ tbody tr:last-child td {
 }
 
 /* ============================================================================ */
-/* BOTÕES COM CORES DIVERTIDAS E VIBRANTES                                       */
+/* BOTÕES GERAIS E DE AÇÃO (ALTURAS E LARGURAS CORRETAS)                        */
 /* ============================================================================ */
-button, .btn {
+button:not(.nav-tabs button):not(.tabs-container button) {
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     font-weight: 600;
     border-radius: 10px;
     transition: all 0.2s ease;
     border: none;
-    padding: 10px 16px;
+    padding: 10px 18px;
     color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: auto; /* Impede que fiquem esticados de forma indesejada */
 }
 
 button:active {
     transform: scale(0.97);
 }
 
-/* Botão Principal / Novo Lançamento (Verde Vibrante Gamer/Neon) */
+/* Botão Principal / Novo Lançamento (Verde Vibrante) */
 button.bg-emerald-600, button.bg-green-600, [id*="novo"], .btn-primary {
     background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
@@ -175,38 +180,31 @@ button.bg-emerald-600, button.bg-green-600, [id*="novo"], .btn-primary {
 
 button.bg-emerald-600:hover, button.bg-green-600:hover {
     background: linear-gradient(135deg, #047857 0%, #059669 100%) !important;
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
 }
 
-/* Botões de Ação Secundários com Cores Divertidas/Destacadas */
-/* Exportar / Azul Tecnológico */
-button[onclick*="exportBackup"], .btn-export {
-    background: linear-gradient(135deg, #2563eb 0%, #3b82f6) !important;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
-}
-button[onclick*="exportBackup"]:hover {
-    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb) !important;
-}
-
-/* Importar / Roxo / Magenta Divertido */
-button[onclick*="importBackup"], .btn-import {
+/* Botões de Ação Específicos (Cadastrar Entrada, Cartão, Conta da Casa) */
+button[onclick*="Cadastrar"], button[onclick*="Card"], button[onclick*="House"] {
     background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6) !important;
     box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
-}
-button[onclick*="importBackup"]:hover {
-    background: linear-gradient(135deg, #6d28d9 0%, #7c3aed) !important;
+    width: auto !important; /* Mantém o tamanho natural ajustado ao texto */
 }
 
-/* Limpar Tudo / Vermelho Alerta Estilizado */
-button[onclick*="Clear"], button[onclick*="confirmClear"], .btn-danger {
+/* Exportar / Azul Tecnológico */
+button[onclick*="exportBackup"] {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6) !important;
+}
+
+/* Importar / Roxo */
+button[onclick*="importBackup"] {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1) !important;
+}
+
+/* Limpar Tudo / Vermelho */
+button[onclick*="Clear"], button[onclick*="confirmClear"] {
     background: linear-gradient(135deg, #dc2626 0%, #ef4444) !important;
-    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
-}
-button[onclick*="Clear"]:hover {
-    background: linear-gradient(135deg, #b91c1c 0%, #dc2626) !important;
 }
 
-/* Inputs e Selects estilizados no tema preto/verde */
+/* Inputs e Selects estilizados */
 input, select, textarea {
     font-family: 'Inter', sans-serif;
     background-color: #050811;
@@ -225,33 +223,24 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ============================================================================ */
-/* MEDIA QUERIES PARA TELEMÓVEIS E TELAS COMPACTAS (< 768px)                     */
+/* MEDIA QUERIES PARA TELEMÓVEIS (< 768px)                                       */
 /* ============================================================================ */
 @media (max-width: 768px) {
     body {
-        padding: 8px;
+        padding: 10px;
     }
 
     .header-buttons, .top-buttons-bar, .nav-tabs, .tabs-container {
         flex-direction: column;
+        align-items: stretch;
     }
 
-    .header-buttons button, .top-buttons-bar button, .nav-tabs button, .tabs-container button {
+    .nav-tabs button, .tabs-container button, .header-buttons button, .top-buttons-bar button {
         width: 100%;
-        min-width: 100%;
     }
 
     .grid-resumo, .stats-container, .dashboard-cards {
         grid-template-columns: 1fr;
         gap: 12px;
-    }
-
-    .card-stat, .stat-card {
-        padding: 16px;
-    }
-
-    th, td {
-        padding: 10px 10px;
-        font-size: 0.8rem;
     }
 }
