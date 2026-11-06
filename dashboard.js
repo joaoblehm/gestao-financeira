@@ -1,5 +1,5 @@
 // ============================================================================
-// DASHBOARD & RENDERIZAÇÃO - dashboard.js (Atualizado com Cores e Paginação)
+// DASHBOARD & RENDERIZAÇÃO - dashboard.js (Atualizado com Alertas 100% Responsivos)
 // ============================================================================
 
 /**
@@ -92,9 +92,12 @@ function renderDashboard() {
 
     let salarioLiquidoBase = salConfig.base - salConfig.discount;
 
-    // Leitura e soma de todas as Rendas Extras cadastradas para o mês selecionado
+    // Leitura e soma de todas as Rendas Extras ativas para o mês selecionado (com suporte a propagação)
     let totalExtraIncome = 0;
-    if (typeof extraIncomes !== 'undefined' && Array.isArray(extraIncomes)) {
+    if (typeof getActiveIncomesForMonth === 'function') {
+        let activeIncs = getActiveIncomesForMonth(selectedMonth);
+        totalExtraIncome = activeIncs.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    } else if (typeof extraIncomes !== 'undefined' && Array.isArray(extraIncomes)) {
         let cleanSel = selectedMonth.replace(/\s+/g, '').replace(/\//g, '').toLowerCase();
         extraIncomes.filter(e => {
             if (!e.month) return true;
@@ -148,7 +151,7 @@ function renderDashboard() {
         }
     }
 
-    // Verificação de alertas automáticos
+    // Verificação de alertas automáticos 100% responsivos para mobile
     let totalCartoesMes = filtered
         .filter(i => i.category === 'Cartão de Crédito')
         .reduce((acc, curr) => acc + curr.amount, 0);
@@ -157,42 +160,42 @@ function renderDashboard() {
 
     if (totalCartoesMes > 3000) {
         alertsHtml += `
-            <div class="bg-rose-950/90 border-2 border-rose-600 text-rose-100 px-5 py-4 rounded-xl shadow-2xl flex items-center gap-4 animate-pulse">
-                <div class="p-3 bg-rose-600 text-white rounded-lg shadow-inner">
-                    <i data-lucide="skull" class="w-8 h-8"></i>
+            <div class="bg-rose-950/90 border-2 border-rose-600 text-rose-100 p-4 sm:p-5 rounded-xl shadow-2xl flex flex-col gap-2.5 animate-pulse w-full max-w-full box-border">
+                <div class="flex items-center gap-3 w-full">
+                    <div class="p-2 bg-rose-600 text-white rounded-lg shadow-inner shrink-0 flex items-center justify-center">
+                        <i data-lucide="skull" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                    </div>
+                    <h4 class="font-black text-xs sm:text-base uppercase tracking-wider text-rose-300 leading-snug">⚠️ PERIGO EXTREMO: FATURA DOS CARTÕES ESTOURADA! ⚠️</h4>
                 </div>
-                <div>
-                    <h4 class="font-black text-lg uppercase tracking-wider text-rose-300">⚠️ PERIGO EXTREMO: FATURA DOS CARTÕES ESTOURADA! ⚠️</h4>
-                    <p class="text-sm font-medium text-rose-200 mt-0.5">A soma dos cartões neste mês atingiu <strong class="text-white underline">R$ ${totalCartoesMes.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong> (Ultrapassou o limite de R$ 3.000,00!). Cuidado com o abismo financeiro!</p>
-                </div>
+                <p class="text-xs sm:text-sm font-medium text-rose-200 break-words w-full">A soma dos cartões neste mês atingiu <strong class="text-white underline">R$ ${totalCartoesMes.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong> (Ultrapassou o limite de R$ 3.000,00!). Cuidado com o abismo financeiro!</p>
             </div>
         `;
     }
 
     if (totalGastosMes > 4500) {
         alertsHtml += `
-            <div class="bg-red-950/90 border-2 border-red-500 text-red-100 px-5 py-4 rounded-xl shadow-2xl flex items-center gap-4 animate-bounce">
-                <div class="p-3 bg-red-600 text-white rounded-lg shadow-inner">
-                    <i data-lucide="alert-octagon" class="w-8 h-8"></i>
+            <div class="bg-red-950/90 border-2 border-red-500 text-red-100 p-4 sm:p-5 rounded-xl shadow-2xl flex flex-col gap-2.5 animate-bounce w-full max-w-full box-border">
+                <div class="flex items-center gap-3 w-full">
+                    <div class="p-2 bg-red-600 text-white rounded-lg shadow-inner shrink-0 flex items-center justify-center">
+                        <i data-lucide="alert-octagon" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                    </div>
+                    <h4 class="font-black text-xs sm:text-base uppercase tracking-wider text-red-300 leading-snug">🚨 ALERTA VERMELHO: GASTOS TOTAIS ACIMA DE R$ 4.500! 🚨</h4>
                 </div>
-                <div>
-                    <h4 class="font-black text-lg uppercase tracking-wider text-red-300">🚨 ALERTA VERMELHO APOCALÍPTICO: GASTOS TOTAIS ACIMA DE R$ 4.500! 🚨</h4>
-                    <p class="text-sm font-medium text-red-200 mt-0.5">O total de todas as contas juntas neste mês está em <strong class="text-white underline">R$ ${totalGastosMes.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>! Se prepare pois a situação está crítica!</p>
-                </div>
+                <p class="text-xs sm:text-sm font-medium text-red-200 break-words w-full">O total de todas as contas juntas neste mês está em <strong class="text-white underline">R$ ${totalGastosMes.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>! Se prepare pois a situação está crítica!</p>
             </div>
         `;
     }
 
     if (sobra > 1000) {
         alertsHtml += `
-            <div class="bg-emerald-950/80 border-2 border-emerald-500 text-emerald-100 px-5 py-4 rounded-xl shadow-xl flex items-center gap-4">
-                <div class="p-3 bg-emerald-600 text-white rounded-lg shadow-inner">
-                    <i data-lucide="party-popper" class="w-8 h-8"></i>
+            <div class="bg-emerald-950/80 border-2 border-emerald-500 text-emerald-100 p-4 sm:p-5 rounded-xl shadow-xl flex flex-col gap-2.5 w-full max-w-full box-border">
+                <div class="flex items-center gap-3 w-full">
+                    <div class="p-2 bg-emerald-600 text-white rounded-lg shadow-inner shrink-0 flex items-center justify-center">
+                        <i data-lucide="party-popper" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                    </div>
+                    <h4 class="font-bold text-xs sm:text-base uppercase tracking-wider text-emerald-300 leading-snug">🎉 BOA, JOÃO! SOBRA GIGANTE NO CAIXA! 🎉</h4>
                 </div>
-                <div>
-                    <h4 class="font-bold text-lg uppercase tracking-wider text-emerald-300">🎉 BOA, JOÃO! SOBRA GIGANTE NO CAIXA! 🎉</h4>
-                    <p class="text-sm font-medium text-emerald-200 mt-0.5">Parabéns! Vai sobrar <strong class="text-white underline">R$ ${sobra.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong> livres no seu saldo neste mês (acima de R$ 1.000,00). Excelente gestão!</p>
-                </div>
+                <p class="text-xs sm:text-sm font-medium text-emerald-200 break-words w-full">Parabéns! Vai sobrar <strong class="text-white underline">R$ ${sobra.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong> livres no seu saldo neste mês (acima de R$ 1.000,00). Excelente gestão!</p>
             </div>
         `;
     }
