@@ -8,7 +8,7 @@ window.salaryConfigs = window.salaryConfigs || [];
 window.extraIncomes = window.extraIncomes || [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Aguarda carregar todos os dados da nuvem do Supabase (com fallback local)
+    // 1. Aguarda OBRIGATORIAMENTE o carregamento completo dos dados da nuvem (Supabase)
     if (typeof loadData === 'function') {
         await loadData();
     }
@@ -23,21 +23,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             opt.innerText = m;
             globalMonth.appendChild(opt);
         });
-        // Define o mês inicial utilizando a função global do calendário ou o primeiro da lista
         let initialMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : monthsList[0];
         globalMonth.value = initialMonth;
         
-        // Garante que o texto do botão do calendário reflete o mês inicial correto
         let monthTextEl = document.getElementById('globalMonthText');
         if (monthTextEl) {
             monthTextEl.innerText = initialMonth;
         }
     }
     
-    // 3. Renderiza o aplicativo completo já com os dados vindos da nuvem
-    renderApp();
-    if (typeof loadSalaryConfig === 'function') loadSalaryConfig();
+    // 3. Renderiza o aplicativo completo com os dados já presentes em memória
+    if (typeof renderApp === 'function') {
+        renderApp();
+    }
+    if (typeof loadSalaryConfig === 'function') {
+        loadSalaryConfig();
+    }
     
+    // Força uma nova verificação imediata para garantir que o dashboard puxou os totais
+    setTimeout(() => {
+        if (typeof renderApp === 'function') renderApp();
+    }, 50);
+
     // Força a renderização inicial dos ícones
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -61,14 +68,12 @@ function switchTab(tabName) {
     let filterCatSelect = document.getElementById('filterCategory');
     if (filterCatSelect) {
         if (tabName.toLowerCase() === 'salary' || tabName === 'Salary') {
-            // Opções exclusivas para a aba de Salário
             filterCatSelect.innerHTML = `
                 <option value="">Todas as Entradas</option>
                 <option value="Salário">Salário</option>
                 <option value="Renda Extra">Renda Extra</option>
             `;
         } else {
-            // Opções normais de despesas para o Dashboard, Cartões e Casa
             filterCatSelect.innerHTML = `
                 <option value="">Todas</option>
                 <option value="Cartão de Crédito">Cartão de Crédito</option>
@@ -79,7 +84,6 @@ function switchTab(tabName) {
         }
     }
 
-    // Executa inicializações específicas da aba se existirem
     if ((tabName.toLowerCase() === 'salary' || tabName === 'Salary') && typeof initSalaryTab === 'function') {
         initSalaryTab();
     }
@@ -121,25 +125,21 @@ function refreshActiveView() {
 window.renderApp = function() {
     refreshActiveView();
 
-    // Garante que os cartões são atualizados com a nova lógica de limite disponível
     if (typeof renderCards === 'function') {
         renderCards();
     }
 
-    // Se estiver na aba de salário, renderiza as entradas
     if (typeof renderIncomesList === 'function') {
         renderIncomesList();
     }
 };
 
-// Garante o carregamento dos ícones do Lucide assim que a janela estiver totalmente carregada
 window.addEventListener('load', () => {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
 });
 
-// Checagens de segurança adicionais para injetar os ícones sem falhas
 setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 100);
 setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 500);
 setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 1000);
