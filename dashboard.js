@@ -11,7 +11,7 @@
  * - Gera alertas visuais dinâmicos (cartões estourados, gastos elevados ou sobra no caixa).
  */
 function renderDashboard() {
-    const selectedMonth = document.getElementById('globalMonth').value;
+    const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
     const categoryFilter = document.getElementById('filterCategory').value;
     const search = document.getElementById('searchBox').value.toLowerCase();
 
@@ -77,7 +77,7 @@ function renderDashboard() {
 
     let salarioLiquidoBase = salConfig.base - salConfig.discount;
 
-    // Leitura e soma de todas as Rendas Extras cadastradas para o mês selecionado[cite: 17]
+    // Leitura e soma de todas as Rendas Extras cadastradas para o mês selecionado
     let totalExtraIncome = 0;
     if (typeof extraIncomes !== 'undefined' && Array.isArray(extraIncomes)) {
         let cleanSel = selectedMonth.replace(/\s+/g, '').replace(/\//g, '').toLowerCase();
@@ -93,7 +93,7 @@ function renderDashboard() {
     let salarioLiquidoTotal = salarioLiquidoBase + totalExtraIncome;
     let sobra = salarioLiquidoTotal - totalGastosMes;
 
-    // Atualização dos elementos visuais dos KPIs no Dashboard[cite: 17]
+    // Atualização dos elementos visuais dos KPIs no Dashboard
     let kpiSalario = document.getElementById('kpiSalario');
     if (kpiSalario) kpiSalario.innerText = `R$ ${salarioLiquidoTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
     
@@ -133,7 +133,7 @@ function renderDashboard() {
         }
     }
 
-    // Verificação de alertas automáticos[cite: 17]
+    // Verificação de alertas automáticos
     let totalCartoesMes = filtered
         .filter(i => i.category === 'Cartão de Crédito')
         .reduce((acc, curr) => acc + curr.amount, 0);
@@ -204,7 +204,7 @@ function renderCardsView() {
         return;
     }
 
-    const selectedMonth = document.getElementById('globalMonth').value;
+    const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
     let projectedItems = getProjectedItems();
 
     if (typeof cardPaidMonths === 'undefined') {
@@ -366,7 +366,7 @@ function toggleCardMonthPaid(cardName, month) {
  * - Filtra e exibe apenas os lançamentos pertencentes à categoria "Contas de Casa" para o mês ativo.
  */
 function renderHouseView() {
-    const selectedMonth = document.getElementById('globalMonth').value;
+    const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
     let projectedItems = getProjectedItems();
     let houseItems = projectedItems.filter(i => i.month === selectedMonth && i.category === 'Contas de Casa');
 
