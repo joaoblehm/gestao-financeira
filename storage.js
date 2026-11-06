@@ -14,7 +14,7 @@ window.cards = [
     { id: 5, name: 'Bradesco Amazon (João)', closingDay: 8, dueDay: 15, limit: 4000 }
 ];
 
-// Configurado para iniciar vazio: só soma e exibe o que for efetivamente lançado
+// Configurado estritamente para iniciar vazio: só soma e exibe o que for efetivamente lançado
 window.salaryConfigs = [];
 
 window.extraIncomes = [];
@@ -61,10 +61,14 @@ async function loadData() {
 
         if (data && data.payload) {
             window.cards = data.payload.cards || window.cards;
-            window.salaryConfigs = data.payload.salaryConfigs || window.salaryConfigs;
+            // Força o salário a ignorar o lixo da nuvem antiga e começar limpo
+            window.salaryConfigs = [];
             window.extraIncomes = data.payload.extraIncomes || window.extraIncomes;
             window.expenses = data.payload.expenses || window.expenses;
             console.log("Dados carregados com sucesso da nuvem!");
+            
+            // Atualiza imediatamente a nuvem para limpar o salário antigo gravado lá
+            await saveDataToCloudDirect();
         } else {
             await saveDataToCloudDirect();
         }
@@ -150,7 +154,7 @@ function importBackup(event) {
             if (json.cards && json.expenses) {
                 if (confirm("Deseja substituir todos os dados atuais pelo backup importado?")) {
                     window.cards = json.cards;
-                    if (json.salaryConfigs) window.salaryConfigs = json.salaryConfigs;
+                    window.salaryConfigs = json.salaryConfigs || [];
                     if (json.extraIncomes) window.extraIncomes = json.extraIncomes;
                     window.expenses = json.expenses;
                     saveData();
