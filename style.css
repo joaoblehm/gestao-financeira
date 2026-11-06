@@ -1,5 +1,5 @@
 /* ============================================================================ */
-/* TEMA DARK PREMIUM (PRETO PROFUNDO, VERDE NEON & MOBILE CORRIGIDO) - style.css */
+/* TEMA DARK PREMIUM & SISTEMA DE CATEGORIAS COLORIDAS - style.css              */
 /* ============================================================================ */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -57,7 +57,7 @@ button:active {
     color: #f1f5f9;
 }
 
-/* ESTADO ATIVO DA ABA SELECIONADA (Destaque Absoluto em Verde Vibrante) */
+/* ESTADO ATIVO DA ABA SELECIONADA (Destaque em Verde Vibrante) */
 button.active, .nav-tabs button.active, .tabs-container button.active, 
 .nav-tabs button[aria-selected="true"], button.tab-active {
     background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
@@ -89,6 +89,27 @@ button[onclick*="importBackup"] {
 button[onclick*="Clear"], button[onclick*="confirmClear"], button[onclick*="Excluir"] {
     background: #0b132b; border-color: #1e293b; color: #f87171;
 }
+
+/* ============================================================================ */
+/* BADGES DE CATEGORIAS COM CORES DISTINTAS                                     */
+/* ============================================================================ */
+.badge-categoria {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cat-cartao { background-color: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
+.cat-mercado { background-color: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+.cat-casa { background-color: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+.cat-assinaturas { background-color: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+.cat-salario { background-color: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+.cat-extra { background-color: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
+.cat-outro { background-color: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
 
 /* ============================================================================ */
 /* ESTRUTURA E LAYOUT GERAL                                                     */
@@ -201,7 +222,7 @@ input:focus, select:focus, textarea:focus {
         width: 100% !important;
     }
 
-    /* FORÇAGEM ABSOLUTA PARA BOTÕES DE AÇÃO NA ABA DE SALÁRIO NO TELEMÓVEL */
+    /* FORÇAGEM ABSOLUTA PARA BOTÕES DE AÇÃO NO TELEMÓVEL */
     .card-stat div.flex, .stat-card div.flex, div.flex.gap-2, div.flex.items-center {
         flex-direction: column !important;
         align-items: stretch !important;
