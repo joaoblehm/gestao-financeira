@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ================= NAVEGAÇÃO ENTRE ABAS =================
-function switchTab(tabName) {
+function switchTab(tabName, clickedElement = null) {
     // Esconde todas as abas
     let tabs = ['tabDashboard', 'tabCards', 'tabHouse', 'tabSalary'];
     tabs.forEach(t => {
@@ -63,6 +63,23 @@ function switchTab(tabName) {
     // Exibe a aba selecionada
     let targetTab = document.getElementById('tab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
     if (targetTab) targetTab.classList.remove('hidden');
+
+    // Remove a classe 'active' de todos os botões de navegação do topo e aplica no clicado
+    const navButtons = document.querySelectorAll('header button, .nav-tabs button, .tabs-container button');
+    navButtons.forEach(btn => btn.classList.remove('active'));
+
+    // Se o elemento foi passado diretamente ou via event, marca como ativo
+    let activeBtn = clickedElement || (event && event.currentTarget);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    } else {
+        // Fallback: tenta encontrar o botão pelo nome da aba correspondente
+        navButtons.forEach(btn => {
+            if (btn.getAttribute('onclick') && btn.getAttribute('onclick').toLowerCase().includes(tabName.toLowerCase())) {
+                btn.classList.add('active');
+            }
+        });
+    }
 
     // Ajusta o seletor global de categorias do topo dependendo da aba ativa
     let filterCatSelect = document.getElementById('filterCategory');
