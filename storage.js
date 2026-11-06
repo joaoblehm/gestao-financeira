@@ -14,9 +14,8 @@ window.cards = [
     { id: 5, name: 'Bradesco Amazon (João)', closingDay: 8, dueDay: 15, limit: 4000 }
 ];
 
-window.salaryConfigs = [
-    { month: "Novembro/2026", base: 5500, discount: 0 }
-];
+// Configurado para iniciar vazio: só soma e exibe o que for efetivamente lançado
+window.salaryConfigs = [];
 
 window.extraIncomes = [];
 
@@ -67,7 +66,6 @@ async function loadData() {
             window.expenses = data.payload.expenses || window.expenses;
             console.log("Dados carregados com sucesso da nuvem!");
         } else {
-            // Se for a primeira vez que executa, grava os dados padrão na nuvem
             await saveDataToCloudDirect();
         }
     } catch (err) {
@@ -80,7 +78,6 @@ async function loadData() {
 
 /**
  * Salva todos os estados atuais diretamente na tabela `app_data` do Supabase.
- * Atualiza automaticamente a interface (renderApp).
  */
 async function saveData() {
     let payloadData = {
