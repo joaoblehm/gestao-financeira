@@ -89,12 +89,26 @@
         <div
             class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm">
             <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                <!-- Seletor Dinâmico do Mês de Referência Global -->
-                <div class="flex items-center gap-2">
+                
+                <!-- Seletor de Mês Estilo Calendário (Windows) -->
+                <div class="flex items-center gap-2 relative">
                     <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Mês Referência:</span>
-                    <select id="globalMonth" onchange="renderApp()"
-                        class="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 outline-none focus:border-indigo-500">
-                    </select>
+                    <div class="relative">
+                        <button type="button" onclick="toggleMonthPicker()" id="globalMonthBtn" 
+                            class="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 outline-none focus:border-indigo-500 flex items-center gap-3 transition">
+                            <span id="globalMonthText">Novembro/2026</span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                        </button>
+                        <!-- Popover do Calendário de Meses -->
+                        <div id="monthPickerPopover" class="hidden absolute left-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-2xl z-50 w-72">
+                            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-800">
+                                <button type="button" onclick="changePickerYear(-1)" class="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                                <span id="pickerYearDisplay" class="font-bold text-white text-base">2026</span>
+                                <button type="button" onclick="changePickerYear(1)" class="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                            </div>
+                            <div class="grid grid-cols-4 gap-2" id="pickerMonthsGrid"></div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Filtro por Categoria -->
@@ -358,15 +372,116 @@
         </div>
     </div>
 
+    <!-- ================= SCRIPTS DE SUPORTE AO CALENDÁRIO ESTILO WINDOWS ================= -->
+    <script>
+        let currentPickerYear = 2026;
+        let currentSelectedMonthStr = "Novembro/2026";
+
+        const monthsNames = [
+            { name: "jan", label: "Janeiro" },
+            { name: "fev", label: "Fevereiro" },
+            { name: "mar", label: "Março" },
+            { name: "abr", label: "Abril" },
+            { name: "mai", label: "Maio" },
+            { name: "jun", label: "Junho" },
+            { name: "jul", label: "Julho" },
+            { name: "ago", label: "Agosto" },
+            { name: "set", label: "Setembro" },
+            { name: "out", label: "Outubro" },
+            { name: "nov", label: "Novembro" },
+            { name: "dez", label: "Dezembro" }
+        ];
+
+        function toggleMonthPicker() {
+            const popover = document.getElementById('monthPickerPopover');
+            popover.classList.toggle('hidden');
+            if (!popover.classList.contains('hidden')) {
+                renderPickerMonths();
+            }
+        }
+
+        function changePickerYear(delta) {
+            currentPickerYear += delta;
+            document.getElementById('pickerYearDisplay').innerText = currentPickerYear;
+            renderPickerMonths();
+        }
+
+        function renderPickerMonths() {
+            const grid = document.getElementById('pickerMonthsGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+            monthsNames.forEach(m => {
+                const fullMonthName = `${m.label}/${currentPickerYear}`;
+                const isSelected = fullMonthName === currentSelectedMonthStr;
+                
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.innerText = m.name;
+                btn.className = `py-2.5 rounded-xl text-xs font-medium uppercase transition ${
+                    isSelected 
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
+                        : 'bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white'
+                }`;
+                
+                btn.onclick = () => {
+                    currentSelectedMonthStr = fullMonthName;
+                    document.getElementById('globalMonthText').innerText = fullMonthName;
+                    document.getElementById('monthPickerPopover').classList.add('hidden');
+                    
+                    // Compatibilidade com a função global do sistema que lê o mês selecionado
+                    let hiddenSelect = document.getElementById('globalMonth');
+                    if (hiddenSelect) {
+                        hiddenSelect.value = fullMonthName;
+                    }
+                    
+                    if (typeof renderApp === 'function') renderApp();
+                };
+                grid.appendChild(btn);
+            });
+        }
+
+        // Função de utilidade para obter o mês selecionado nos outros scripts do sistema
+        function getSelectedMonth() {
+            return currentSelectedMonthStr;
+        }
+
+        // Fecha o popover se clicar fora
+        document.addEventListener('click', (e) => {
+            const popover = document.getElementById('monthPickerPopover');
+            const btn = document.getElementById('globalMonthBtn');
+            if (popover && btn && !popover.contains(e.target) && !btn.contains(e.target)) {
+                popover.classList.add('hidden');
+            }
+        });
+
+        // Inicializa a grelha ao carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            renderPickerMonths();
+            // Cria um input/select oculto caso algum script dependa do elemento 'globalMonth' original
+            let headerBar = document.querySelector('#globalMonthBtn').parentNode;
+            if (!document.getElementById('globalMonth')) {
+                let hiddenSel = document.createElement('select');
+                hiddenSel.id = 'globalMonth';
+                hiddenSel.className = 'hidden';
+                let opt = document.createElement('option');
+                opt.value = currentSelectedMonthStr;
+                opt.selected = true;
+                hiddenSel.appendChild(opt);
+                headerBar.appendChild(hiddenSel);
+            }
+        });
+    </script>
+
     <!-- ================= SCRIPTS MODULARES DO SISTEMA ================= -->
-<script src="constants.js"></script>
-<script src="storage.js"></script>
-<script src="cards.js"></script>
-<script src="salary.js"></script>
-<script src="expenses.js"></script>
-<script src="dashboard.js"></script>
-<script src="notifications.js"></script>
-<script src="app.js"></script>
+    <script src="constants.js"></script>
+    <script src="storage.js"></script>
+    <script src="cards.js"></script>
+    <script src="salary.js"></script>
+    <script src="expenses.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="notifications.js"></script>
+    <script src="app.js"></script>
 </body>
 
 </html>
