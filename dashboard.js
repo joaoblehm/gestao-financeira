@@ -1,14 +1,13 @@
 // ============================================================================
-// DASHBOARD & RENDERIZAÇÃO - dashboard.js
+// DASHBOARD & RENDERIZAÇÃO - dashboard.js (Atualizado com Cores e Paginação)
 // ============================================================================
 
 /**
  * Renderiza o painel principal (Dashboard & Extrato):
  * - Filtra as despesas projetadas com base no mês selecionado, categoria e termo de busca.
+ * - Aplica paginação (40 itens por página) e cores dinâmicas nas categorias.
  * - Popula a tabela de lançamentos na interface.
- * - Calcula o salário líquido total (base personalizada do mês + rendas extras).
- * - Calcula os KPIs de gastos, valores pendentes e saldo livre (sobra/déficit).
- * - Gera alertas visuais dinâmicos (cartões estourados, gastos elevados ou sobra no caixa).
+ * - Calcula o salário líquido total e os KPIs.
  */
 function renderDashboard() {
     const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
@@ -31,19 +30,30 @@ function renderDashboard() {
     let counterEl = document.getElementById('counterLancamentos');
     if (counterEl) counterEl.innerText = `${filtered.length} itens`;
 
+    // Aplicação da paginação (40 itens por página)
+    if (typeof window.currentPage === 'undefined') window.currentPage = 1;
+    let paginatedFiltered = (typeof paginateItems === 'function') ? paginateItems(filtered) : filtered;
+
     let totalGastosMes = 0;
     let totalPendenteMes = 0;
 
+    // Totais calculados sobre o total filtrado (não apenas a página atual)
     filtered.forEach(item => {
         totalGastosMes += item.amount;
         if (!item.paid) totalPendenteMes += item.amount;
+    });
 
+    paginatedFiltered.forEach(item => {
         let tr = document.createElement('tr');
         tr.className = "hover:bg-slate-800/40 transition";
+        
+        // Cores dinâmicas para a categoria
+        let catClass = (typeof getCategoryClass === 'function') ? getCategoryClass(item.category) : 'cat-outro';
+
         tr.innerHTML = `
             <td class="py-3 px-4 text-xs text-slate-400">${item.month}</td>
             <td class="py-3 px-4 font-medium text-white">${item.desc}</td>
-            <td class="py-3 px-4"><span class="px-2 py-1 rounded text-xs bg-slate-800 text-slate-300 border border-slate-700">${item.category}</span></td>
+            <td class="py-3 px-4"><span class="badge-categoria ${catClass}">${item.category}</span></td>
             <td class="py-3 px-4 text-slate-300">${item.card}</td>
             <td class="py-3 px-4 text-xs font-semibold text-indigo-400">${item.instStr}</td>
             <td class="py-3 px-4 text-right font-semibold text-white">R$ ${item.amount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
@@ -60,6 +70,11 @@ function renderDashboard() {
         `;
         tbody.appendChild(tr);
     });
+
+    // Renderiza a paginação abaixo da tabela se existir contentor
+    if (typeof renderPaginationControls === 'function') {
+        renderPaginationControls(filtered.length, 'paginationContainer');
+    }
 
     // Leitura estrita do Salário Configurado para o Mês
     let salConfig = { base: 0, discount: 0 };
@@ -272,7 +287,6 @@ function renderCardsView() {
 
         let totalCardFat = monthlyCardItems.reduce((acc, curr) => acc + curr.amount, 0);
 
-        // Cálculo do Limite Disponível em tempo real
         let limitStatus = (typeof getCardLimitStatus === 'function') 
             ? getCardLimitStatus(card.name, selectedMonth, card.limit) 
             : { available: Math.max(0, Number(card.limit || 0) - totalCardFat) };
@@ -382,6 +396,8 @@ function renderHouseView() {
     houseItems.forEach(item => {
         let tr = document.createElement('tr');
         tr.className = "hover:bg-slate-800/40 transition";
+        let catClass = (typeof getCategoryClass === 'function') ? getCategoryClass(item.category) : 'cat-outro';
+
         tr.innerHTML = `
             <td class="py-3 px-4 text-xs text-slate-400">${item.month}</td>
             <td class="py-3 px-4 text-xs text-slate-300">Data Base</td>
