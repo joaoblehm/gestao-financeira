@@ -7,48 +7,85 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #0f172a; /* Fundo escuro moderno (Slate 900) */
+    background-color: #0f172a;
     color: #f8fafc;
     margin: 0;
     padding: 16px;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
 }
 
-/* Tratamento do ícone do calendário para inputs de data */
 input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
     cursor: pointer;
 }
 
 /* ============================================================================ */
-/* LAYOUT E CONTAINERS RESPONSIVOS                                              */
+/* CABEÇALHO E BOTÕES SUPERIORES RESPONSIVOS                                    */
 /* ============================================================================ */
 
-/* Grelha dos 4 cards de resumo do topo */
+/* Garante que o topo da aplicação se comporta bem em qualquer tela */
+header, .app-header, .top-actions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Grupo de botões superiores fluidos */
+.header-buttons, .top-buttons-bar, .flex.gap-2 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+}
+
+.header-buttons button, .top-buttons-bar button, header button {
+    flex: 1;
+    min-width: 130px;
+}
+
+/* Navegação por abas responsiva (Painel, Cartões, Casa, Salário) */
+.nav-tabs, .tabs-container, .flex.gap-2.mb-6 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+}
+
+.nav-tabs button, .tabs-container button {
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
+    justify-content: center;
+}
+
+/* ============================================================================ */
+/* LAYOUT E CONTAINERS DE RESUMO (KPIs)                                         */
+/* ============================================================================ */
 .grid-resumo, .stats-container, .dashboard-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 16px;
     width: 100%;
     margin-bottom: 24px;
 }
 
-/* Estilo unificado para os cards de estatísticas */
 .card-stat, .stat-card {
-    background: #1e293b; /* Slate 800 */
+    background: #1e293b;
     border: 1px solid #334155;
     border-radius: 12px;
     padding: 20px;
     min-width: 0;
     overflow: hidden;
     position: relative;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .card-stat:hover, .stat-card:hover {
     border-color: #475569;
-    transform: translateY(-2px);
 }
 
 /* ============================================================================ */
@@ -69,24 +106,24 @@ table {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
-    white-space: nowrap; /* Evita quebra feia de texto */
+    white-space: nowrap;
 }
 
 th {
     background-color: #0f172a;
     color: #94a3b8;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-bottom: 1px solid #334155;
 }
 
 td {
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-bottom: 1px solid #334155;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: #e2e8f0;
 }
 
@@ -103,7 +140,7 @@ tbody tr:last-child td {
 }
 
 /* ============================================================================ */
-/* BOTÕES E FORMULÁRIOS PROFISSIONAIS                                           */
+/* INPUTS, SELECTS E FORMULÁRIOS                                                */
 /* ============================================================================ */
 button, .btn {
     cursor: pointer;
@@ -112,6 +149,7 @@ button, .btn {
     border-radius: 8px;
     transition: all 0.2s ease;
     border: none;
+    padding: 10px 14px;
 }
 
 button:active {
@@ -126,6 +164,7 @@ input, select, textarea {
     border-radius: 8px;
     padding: 10px 14px;
     outline: none;
+    width: 100%;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -135,32 +174,41 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ============================================================================ */
-/* AJUSTES RESPONSIVOS PARA DISPOSITIVOS MÓVEIS (< 768px)                       */
+/* MEDIA QUERIES PARA TELEMÓVEIS E TELAS COMPACTAS (< 768px)                     */
 /* ============================================================================ */
 @media (max-width: 768px) {
     body {
         padding: 8px;
     }
 
-    /* Empilha e organiza melhor os botões de topo no telemóvel */
-    .top-actions, .header-buttons, header {
+    /* Faz com que todos os botões do topo ocupem linhas organizadas e estiquem bem */
+    .header-buttons, .top-buttons-bar, .nav-tabs, .tabs-container {
         flex-direction: column;
-        gap: 10px;
     }
 
-    /* Os cartões de resumo passam a ocupar 100% da largura em coluna */
+    .header-buttons button, .top-buttons-bar button, .nav-tabs button, .tabs-container button {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    /* Cards de resumo emparelhados em coluna única no telemóvel */
     .grid-resumo, .stats-container, .dashboard-cards {
         grid-template-columns: 1fr;
         gap: 12px;
     }
 
-    /* Reduz levemente o espaçamento interno em telas muito pequenas */
     .card-stat, .stat-card {
         padding: 16px;
     }
 
+    /* Ajuste de filtros de busca e seleção no telemóvel */
+    .filter-bar, .search-container {
+        flex-direction: column;
+        gap: 8px;
+    }
+
     th, td {
-        padding: 10px 12px;
-        font-size: 0.85rem;
+        padding: 10px 10px;
+        font-size: 0.8rem;
     }
 }
