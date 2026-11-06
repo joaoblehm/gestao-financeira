@@ -142,7 +142,7 @@ function exportBackup() {
 }
 
 /**
- * Importa dados de um arquivo JSON de backup pré-existente e envia para a nuvem.
+ * Importa dados de um arquivo JSON de backup pré-existente e envia para a nuvem, preservando os cartões atuais.
  */
 function importBackup(event) {
     let file = event.target.files[0];
@@ -151,9 +151,9 @@ function importBackup(event) {
     reader.onload = function (e) {
         try {
             let json = JSON.parse(e.target.result);
-            if (json.cards && json.expenses) {
-                if (confirm("Deseja substituir todos os dados atuais pelo backup importado?")) {
-                    window.cards = json.cards;
+            if (json.expenses) {
+                if (confirm("Deseja importar os lançamentos e atualizar os dados do sistema? (Os teus cartões atuais serão preservados)")) {
+                    // Mantém os cartões atuais intactos (window.cards não é sobrescrito)
                     window.salaryConfigs = json.salaryConfigs || [];
                     if (json.extraIncomes) window.extraIncomes = json.extraIncomes;
                     window.expenses = json.expenses;
