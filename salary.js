@@ -131,7 +131,8 @@ function openExtraIncomeModal(id = null) {
     let form = document.getElementById('extraIncomeForm');
     if (form) form.reset();
     
-    let currentGlobalMonth = document.getElementById('globalMonth') ? document.getElementById('globalMonth').value : 'Novembro/2026';
+    // Lê o mês ativo através da função global do calendário estilo Windows
+    let currentGlobalMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
     let dateField = document.getElementById('extraIncDate');
     if (dateField) {
         dateField.value = monthNameToDateInput(currentGlobalMonth);
@@ -384,8 +385,8 @@ function confirmDeleteSelectedIncomes() {
  * aplicando filtros combinados por mês global, categoria selecionada e texto de busca (descrição).
  */
 function renderIncomesList() {
-    let globalMonthEl = document.getElementById('globalMonth');
-    let month = globalMonthEl ? globalMonthEl.value : 'Novembro/2026';
+    // Lê o mês ativo através da nova função global do calendário estilo Windows
+    let month = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
 
     let filterCategoryEl = document.getElementById('filterCategory');
     let selectedCategoryFilter = filterCategoryEl ? filterCategoryEl.value : '';
