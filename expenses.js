@@ -2,9 +2,6 @@
 // MÓDULO DE GERENCIAMENTO DE DESPESAS E LANÇAMENTOS - expenses.js
 // ============================================================================
 
-/**
- * Função auxiliar para somar meses a uma string de competência (ex: "Novembro/2026" + 1 = "Dezembro/2026").
- */
 function addMonthsToMonthName(monthStr, addCount) {
     const mapNamesBack = {
         'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4,
@@ -29,9 +26,6 @@ function addMonthsToMonthName(monthStr, addCount) {
     return `${mapMonthsInv[newMonthNum]}/${newYear}`;
 }
 
-/**
- * Converte uma string de data "YYYY-MM-DD" para o formato "Mês/Ano".
- */
 function dateToMonthName(dateStr) {
     if (!dateStr) return 'Novembro/2026';
     let parts = dateStr.split('-');
@@ -50,10 +44,6 @@ function dateToMonthName(dateStr) {
     return `${monthName}/${year}`;
 }
 
-/**
- * Gera a lista de itens projetados (parcelas expandidas) aplicando a regra inteligente de fechamento de fatura
- * com base estrita na data da compra inserida.
- */
 function getProjectedItems() {
     let projectedItems = [];
     if (typeof expenses === 'undefined') return projectedItems;
@@ -62,10 +52,8 @@ function getProjectedItems() {
         let instCount = exp.totalInst || 1;
         if (!exp.paidMonths) exp.paidMonths = {};
 
-        // Define o mês base diretamente através da data da compra (exp.date ou fallback para startMonth)
         let baseMonth = exp.date ? dateToMonthName(exp.date) : (exp.startMonth || "Novembro/2026");
 
-        // REGRA INTELIGENTE DE FECHAMENTO DE CARTÃO:
         let effectiveStartMonth = baseMonth;
         if (exp.category === 'Cartão de Crédito' && exp.card && exp.date && typeof cards !== 'undefined') {
             let targetCard = cards.find(c => c.name === exp.card);
@@ -75,7 +63,6 @@ function getProjectedItems() {
                     let buyDay = parseInt(dateParts[2], 10);
                     let closingDay = parseInt(targetCard.closingDay, 10);
 
-                    // Se o dia da compra for MAIOR que o fechamento, a 1ª parcela vai para o mês seguinte
                     if (buyDay > closingDay) {
                         effectiveStartMonth = addMonthsToMonthName(baseMonth, 1);
                     }
@@ -83,7 +70,6 @@ function getProjectedItems() {
             }
         }
 
-        // Expande as parcelas sequencialmente a partir do mês efetivo calculado
         for (let i = 0; i < instCount; i++) {
             let targetMonth = effectiveStartMonth;
             if (i > 0) {
@@ -108,9 +94,6 @@ function getProjectedItems() {
     return projectedItems;
 }
 
-/**
- * Abre o modal de cadastro/edição de lançamentos.
- */
 function openExpenseModal() {
     let modal = document.getElementById('expenseModal');
     if (!modal) {
@@ -131,7 +114,6 @@ function openExpenseModal() {
     let titleEl = document.getElementById('expenseModalTitle');
     if (titleEl) titleEl.innerText = 'Novo Lançamento';
 
-    // Preenche com a data atual do sistema por defeito
     let expDate = document.getElementById('expDate');
     if (expDate) expDate.value = new Date().toISOString().split('T')[0];
 
@@ -140,11 +122,9 @@ function openExpenseModal() {
     if (typeof updateCardClosingInfo === 'function') updateCardClosingInfo();
 }
 
-/**
- * Cria dinamicamente o HTML do modal de despesas no DOM (sem o campo redundante de mês inicial).
- */
 function createExpenseModalElement() {
-    if (document.getElementById('expenseModal')) return;
+    let existing = document.getElementById('expenseModal');
+    if (existing) existing.remove();
 
     let div = document.createElement('div');
     div.id = 'expenseModal';
@@ -157,15 +137,11 @@ function createExpenseModalElement() {
             </div>
             <form id="expenseForm" onsubmit="event.preventDefault(); saveExpenseManually();" class="space-y-4">
                 <input type="hidden" id="expId">
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Data da Compra *</label>
-                    <input type="date" id="expDate" required onchange="updateCardClosingInfo()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Descrição *</label>
-                    <input type="text" id="expDesc" required placeholder="Ex: Supermercado, Aluguel, Conta de Luz..." class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
-                </div>
                 <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Data da Compra *</label>
+                        <input type="date" id="expDate" required onchange="updateCardClosingInfo()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
+                    </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1">Categoria *</label>
                         <select id="expCategory" onchange="toggleCardSelect(); updateCardClosingInfo();" required class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
@@ -176,13 +152,16 @@ function createExpenseModalElement() {
                             <option value="Assinaturas">Assinaturas</option>
                         </select>
                     </div>
-                    <div id="cardSelectContainer" class="hidden">
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Cartão *</label>
-                        <select id="expCard" onchange="updateCardClosingInfo()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
-                        </select>
-                    </div>
                 </div>
-                <!-- Aviso dinâmico do Fechamento do Cartão baseado na data -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Descrição *</label>
+                    <input type="text" id="expDesc" required placeholder="Ex: Supermercado, Aluguel, Conta de Luz..." class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
+                </div>
+                <div id="cardSelectContainer" class="hidden">
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Cartão *</label>
+                    <select id="expCard" onchange="updateCardClosingInfo()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
+                    </select>
+                </div>
                 <div id="cardClosingInfoBox" class="hidden bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-3 text-xs text-indigo-300 flex items-center gap-2">
                     <i data-lucide="info" class="w-4 h-4 text-indigo-400 shrink-0"></i>
                     <span id="cardClosingInfoText">Selecione o cartão e a data para ver o status da fatura.</span>
@@ -212,9 +191,6 @@ function createExpenseModalElement() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-/**
- * Atualiza o aviso visual com o dia de fechamento com base na data da compra informada.
- */
 function updateCardClosingInfo() {
     let catSelect = document.getElementById('expCategory');
     let cardSelect = document.getElementById('expCard');
@@ -269,9 +245,6 @@ function updateCardClosingInfo() {
     }
 }
 
-/**
- * Controla a exibição do seletor de cartões.
- */
 function toggleCardSelect() {
     let catSelect = document.getElementById('expCategory');
     let container = document.getElementById('cardSelectContainer');
@@ -284,9 +257,6 @@ function toggleCardSelect() {
     }
 }
 
-/**
- * Popula o select de cartões.
- */
 function populateCardDropdown() {
     let cardSelect = document.getElementById('expCard');
     if (!cardSelect) return;
@@ -391,7 +361,7 @@ function saveExpenseManually() {
     let editId = editIdInput ? editIdInput.value.trim() : '';
     
     let dateValue = document.getElementById('expDate').value;
-    let startMonth = dateToMonthName(dateValue); // Deriva o mês base automaticamente da data
+    let startMonth = dateToMonthName(dateValue);
     let desc = document.getElementById('expDesc').value.trim();
     let category = document.getElementById('expCategory').value.trim();
     let card = category === 'Cartão de Crédito' ? document.getElementById('expCard').value : category;
@@ -474,7 +444,7 @@ function confirmClearAllData() {
     if (typeof showConfirmModal === 'function') {
         showConfirmModal('Tem certeza absoluta que deseja apagar TODOS os lançamentos?', () => clearAllData());
     } else {
-        if (confirm('Deseja apagar TODOS os lançamentos?')) clearAllData();
+        if (confirm('Tem certeza absoluta que deseja apagar TODOS os lançamentos?')) clearAllData();
     }
 }
 
