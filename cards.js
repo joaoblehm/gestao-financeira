@@ -2,17 +2,10 @@
 // MÓDULO DE GERENCIAMENTO DE CARTÕES DE CRÉDITO - cards.js
 // ============================================================================
 
-/**
- * Abre o modal de cadastro ou edição de cartão de crédito.
- * Se um 'id' for passado, o modal entra em modo de EDIÇÃO, preenchendo os campos com os dados do cartão.
- * Se nenhum 'id' for passado, o modal abre limpo para CADASTRO de um novo cartão.
- * @param {number|null} id - ID do cartão para edição ou null para novo registo.
- */
 function openCardModal(id = null) {
     let modal = document.getElementById('cardModal');
     if (!modal) return;
     
-    // Exibe o modal na tela (troca 'hidden' por 'flex')
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     
@@ -25,7 +18,6 @@ function openCardModal(id = null) {
     let modalTitle = modal.querySelector('h3');
     if (modalTitle) modalTitle.innerText = 'Cadastrar Cartão de Crédito';
     
-    // Se recebeu um ID, busca o cartão correspondente e popula os campos para edição
     if (id !== null && typeof cards !== 'undefined') {
         let card = cards.find(c => Number(c.id) === Number(id));
         if (card) {
@@ -44,9 +36,6 @@ function openCardModal(id = null) {
     }
 }
 
-/**
- * Fecha o modal de cartões e limpa o formulário correspondente.
- */
 function closeCardModal() {
     let modal = document.getElementById('cardModal');
     if (!modal) return;
@@ -57,9 +46,6 @@ function closeCardModal() {
     if (form) form.reset();
 }
 
-/**
- * Popula o elemento <select> de cartões nos formulários de lançamento de despesas.
- */
 function populateCardDropdowns() {
     let select = document.getElementById('expCard');
     if (!select) return;
@@ -76,17 +62,10 @@ function populateCardDropdowns() {
     }
 }
 
-/**
- * Alias de compatibilidade para garantir integridade caso algum outro script chame no singular.
- */
 function populateCardDropdown() {
     populateCardDropdowns();
 }
 
-/**
- * Controla a exibição condicional do campo de seleção de cartões no modal de lançamentos.
- * Se a categoria escolhida for "Cartão de Crédito", o select de cartões aparece. Caso contrário, oculta.
- */
 function toggleCardSelect() {
     let catEl = document.getElementById('expCategory');
     let container = document.getElementById('cardSelectContainer');
@@ -98,10 +77,6 @@ function toggleCardSelect() {
     }
 }
 
-/**
- * Salva os dados do cartão de crédito (funciona tanto para CRIAR um novo quanto para EDITAR um existente).
- * @param {Event} e - Evento de submissão do formulário.
- */
 function saveCard(e) {
     if (e) e.preventDefault();
     
@@ -129,7 +104,6 @@ function saveCard(e) {
     if (typeof cards === 'undefined') window.cards = [];
 
     if (id !== '') {
-        // MODO EDIÇÃO: Atualiza os dados do cartão correspondente
         let card = cards.find(c => Number(c.id) === Number(id));
         if (card) {
             card.name = name;
@@ -141,25 +115,18 @@ function saveCard(e) {
             showToast("Cartão atualizado com sucesso!", "success");
         }
     } else {
-        // MODO CRIAÇÃO: Gera um novo ID e adiciona à lista de cartões
         let newId = cards.length > 0 ? Math.max(...cards.map(c => Number(c.id) || 0)) + 1 : 1;
         cards.push({ id: newId, name, closingDay, dueDay, limit });
         if (typeof showToast === 'function') {
             showToast("Cartão cadastrado com sucesso!", "success");
-        } else {
-            alert('Cartão cadastrado com sucesso!');
         }
     }
 
-    if (typeof saveData === 'function') saveData();      // Salva alterações no Supabase/localStorage
-    closeCardModal(); // Fecha o modal
-    if (typeof renderApp === 'function') renderApp();      // Atualiza a interface
+    if (typeof saveData === 'function') saveData();
+    closeCardModal();
+    if (typeof renderApp === 'function') renderApp();
 }
 
-/**
- * Exclui um cartão de crédito após confirmação utilizando o modal personalizado do tema escuro.
- * @param {number} id - ID do cartão a ser excluído.
- */
 function deleteCard(id) {
     let doDelete = () => {
         if (typeof cards !== 'undefined') {
@@ -172,7 +139,6 @@ function deleteCard(id) {
         }
     };
 
-    // Utiliza o modal de confirmação personalizado do tema
     if (typeof showConfirmModal === 'function') {
         showConfirmModal('Deseja realmente excluir este cartão de crédito?', doDelete);
     } else {
@@ -182,23 +148,13 @@ function deleteCard(id) {
     }
 }
 
-/**
- * Calcula o limite disponível de um cartão subtraindo o saldo devedor total 
- * (somatório de todas as parcelas pendentes/futuras das compras ativas) do limite total.
- * @param {string} cardName - Nome do cartão.
- * @param {string} currentMonth - Mês de referência ativo.
- * @param {number} cardLimit - Limite total cadastrado no cartão.
- * @returns {Object} Contém o total comprometido e o limite disponível calculado.
- */
 function getCardLimitStatus(cardName, currentMonth, cardLimit) {
     let totalCommitted = 0;
 
-    // Soma o saldo devedor de todas as parcelas pendentes vinculadas a este cartão no sistema
     if (typeof expenses !== 'undefined') {
         expenses.forEach(exp => {
             if (exp.card === cardName) {
                 let projected = getProjectedItems();
-                // Filtra as parcelas desta compra específica que ainda estão pendentes
                 let parcelasPendentesDestaCompra = projected.filter(item => 
                     item.parentId === (exp.parentId || exp.id) && !item.paid
                 );
@@ -220,8 +176,8 @@ function getCardLimitStatus(cardName, currentMonth, cardLimit) {
 }
 
 /**
- * Renderiza os cards de crédito na aba "Cartões & Faturas", exibindo os dados,
- * faturas do mês, total comprometido e o Limite Disponível calculado em tempo real.
+ * Renderiza os cards de crédito na aba "Cartões & Faturas" com a listagem completa dos lançamentos,
+ * alertas de fechamento/vencimento, botão de quitação e limite disponível.
  */
 function renderCards() {
     let grid = document.getElementById('cardsGrid');
@@ -238,71 +194,159 @@ function renderCards() {
         return;
     }
 
-    // Lê o mês ativo através da nova função global do calendário estilo Windows
-    let currentMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
+    let selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
+    let projectedItems = getProjectedItems();
+
+    if (typeof cardPaidMonths === 'undefined') {
+        window.cardPaidMonths = JSON.parse(localStorage.getItem('srin_card_paid_months')) || {};
+    }
+
+    const hoje = new Date();
+    const diaAtual = hoje.getDate();
 
     cards.forEach(card => {
-        // Calcula o limite disponível com base nas parcelas pendentes totais
-        let limitStatus = getCardLimitStatus(card.name, currentMonth, card.limit);
+        let monthlyCardItems = projectedItems.filter(i => i.card === card.name && i.month === selectedMonth);
+        
+        let closingDay = Number(card.closingDay) || 1;
+        let dueDay = Number(card.dueDay) || 1;
 
-        // Calcula o valor da fatura do mês específico para este cartão
-        let cardInvoiceTotal = 0;
-        if (typeof getProjectedItems === 'function') {
-            let projected = getProjectedItems();
-            projected.forEach(item => {
-                if (item.card === card.name && item.month === currentMonth) {
-                    cardInvoiceTotal += Number(item.amount || 0);
-                }
-            });
+        let isClosingToday = (diaAtual === closingDay);
+        let isDueTodayOrPassed = (diaAtual >= dueDay);
+
+        if (!cardPaidMonths[card.name]) cardPaidMonths[card.name] = {};
+        let isCardQuitado = !!cardPaidMonths[card.name][selectedMonth];
+
+        let cardClasses = "bg-slate-900 border rounded-xl p-5 flex flex-col justify-between shadow-sm transition relative overflow-hidden";
+        let badgeHtml = '';
+
+        if (isCardQuitado) {
+            cardClasses += " border-emerald-500/80 shadow-emerald-950/40 shadow-lg";
+            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 w-fit"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> FATURA QUITADA (${selectedMonth})</span>`;
+        } else if (isDueTodayOrPassed) {
+            cardClasses += " border-rose-500 shadow-rose-950/50 shadow-lg";
+            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse">⚠️ VENCIDO / VENCE HOJE (Dia ${dueDay})</span>`;
+        } else if (isClosingToday) {
+            cardClasses += " border-amber-500 shadow-amber-950/50 shadow-lg animate-pulse";
+            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">🔔 FECHA HOJE (Dia ${closingDay})</span>`;
+        } else {
+            cardClasses += " border-slate-800";
         }
 
-        let div = document.createElement('div');
-        div.className = "bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4 relative overflow-hidden";
-        div.innerHTML = `
-            <div class="flex justify-between items-center pb-3 border-b border-slate-800">
-                <div class="flex items-center gap-2.5">
-                    <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/20">
-                        <i data-lucide="credit-card" class="w-5 h-5"></i>
+        let cardDiv = document.createElement('div');
+        cardDiv.className = cardClasses;
+        
+        let itemsHtml = '';
+
+        if (monthlyCardItems.length === 0) {
+            itemsHtml = `<p class="text-xs text-slate-500 italic py-2">Nenhum lançamento neste cartão para ${selectedMonth}.</p>`;
+        } else {
+            itemsHtml = `<div class="space-y-2 my-3 max-h-56 overflow-y-auto pr-1">`;
+            
+            monthlyCardItems.forEach(item => {
+                let itemQuitado = item.paid || isCardQuitado;
+                itemsHtml += `
+                    <div class="flex justify-between items-center bg-slate-800/40 p-2.5 rounded-lg text-xs border border-slate-800">
+                        <div>
+                            <div class="font-medium text-white">${item.desc}</div>
+                            <div class="text-slate-400 text-[10px] mt-0.5">Parcela: <span class="text-indigo-400 font-semibold">${item.instStr}</span></div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-semibold text-white">R$ ${Number(item.amount || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                            <span class="text-[10px] ${itemQuitado ? 'text-emerald-400' : 'text-amber-400'}">${itemQuitado ? 'Quitado' : 'Pendente'}</span>
+                        </div>
                     </div>
-                    <h3 class="font-bold text-white text-base">${card.name}</h3>
-                </div>
-                <div class="flex items-center gap-1">
-                    <button onclick="openCardModal(${card.id})" class="p-1.5 hover:text-indigo-400 text-slate-400 transition rounded-lg hover:bg-slate-800" title="Editar Cartão"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                    <button onclick="deleteCard(${card.id})" class="p-1.5 hover:text-rose-400 text-slate-400 transition rounded-lg hover:bg-slate-800" title="Excluir Cartão"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                </div>
-            </div>
+                `;
+            });
+            itemsHtml += `</div>`;
+        }
 
-            <div class="text-xs text-slate-400 space-y-1.5">
-                <div class="flex justify-between">
-                    <span>Fechamento: Dia ${card.closingDay}</span>
-                    <span>Vencimento: Dia ${card.dueDay}</span>
-                </div>
-                <div class="flex justify-between font-medium text-slate-300">
-                    <span>Limite Total:</span>
-                    <span>R$ ${Number(card.limit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-                <div class="flex justify-between font-bold text-emerald-400 pt-0.5 border-t border-slate-800/60">
-                    <span>Limite Disponível:</span>
-                    <span>R$ ${limitStatus.available.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-            </div>
+        let totalCardFat = monthlyCardItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+        let limitStatus = getCardLimitStatus(card.name, selectedMonth, card.limit);
 
-            <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-sm">
-                <span class="text-slate-400 text-xs">Fatura (${currentMonth}):</span>
-                <span class="font-bold text-indigo-400">R$ ${cardInvoiceTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        cardDiv.innerHTML = `
+            <div>
+                <div class="flex justify-between items-start gap-2 mb-2">
+                    <div class="flex-1">
+                        <h3 class="font-bold text-white text-base flex items-center gap-2">
+                            <i data-lucide="credit-card" class="text-indigo-400 w-5 h-5 shrink-0"></i> 
+                            <span class="truncate">${card.name}</span>
+                        </h3>
+                        <div>${badgeHtml}</div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0 bg-slate-800/80 p-1.5 rounded-lg border border-slate-700/60">
+                        <button onclick="openCardModal(${card.id})" class="text-slate-300 hover:text-indigo-400 transition p-1" title="Editar Cartão"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                        <button onclick="deleteCard(${card.id})" class="text-slate-300 hover:text-rose-400 transition p-1" title="Excluir Cartão"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+                <div class="text-xs text-slate-400 space-y-1.5 mb-3 mt-2">
+                    <div class="flex justify-between">
+                        <span>Fechamento: Dia ${card.closingDay}</span>
+                        <span>Vencimento: Dia ${card.dueDay}</span>
+                    </div>
+                    <div class="flex justify-between font-medium text-slate-300">
+                        <span>Limite Total:</span>
+                        <span>R$ ${Number(card.limit || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                    </div>
+                    <div class="flex justify-between font-bold text-emerald-400 pt-1 border-t border-slate-800/60">
+                        <span>Limite Disponível:</span>
+                        <span>R$ ${limitStatus.available.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                    </div>
+                </div>
+                <div class="border-t border-slate-800 pt-2 mb-2 flex justify-between items-center">
+                    <span class="text-xs font-semibold text-slate-300">Fatura (${selectedMonth}):</span>
+                    <span class="text-sm font-bold text-indigo-400">R$ ${totalCardFat.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                </div>
+                ${itemsHtml}
             </div>
-
-            <div class="pt-2">
-                <button onclick="openExpenseModalForCard('${card.name}')" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2 rounded-lg flex items-center justify-center gap-1.5 transition border border-slate-700">
+            <div class="space-y-2 mt-3 pt-3 border-t border-slate-800">
+                <button onclick="toggleCardMonthPaid('${card.name}', '${selectedMonth}')" class="w-full py-2.5 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition ${isCardQuitado ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'}">
+                    <i data-lucide="${isCardQuitado ? 'check-check' : 'check'}" class="w-4 h-4"></i>
+                    ${isCardQuitado ? 'Fatura Quitada (Clique para Reabrir)' : 'Marcar Fatura como Quitada'}
+                </button>
+                <button onclick="openExpenseModalForCard('${card.name}')" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 rounded-lg font-medium flex items-center justify-center gap-1.5 transition">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar Gasto neste Cartão
                 </button>
             </div>
         `;
-        grid.appendChild(div);
+        grid.appendChild(cardDiv);
     });
 
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
+    }
+}
+
+/**
+ * Alterna o status de quitação da fatura de um cartão específico para o mês selecionado.
+ */
+function toggleCardMonthPaid(cardName, month) {
+    if (typeof cardPaidMonths === 'undefined') {
+        window.cardPaidMonths = JSON.parse(localStorage.getItem('srin_card_paid_months')) || {};
+    }
+    if (!cardPaidMonths[cardName]) cardPaidMonths[cardName] = {};
+
+    let currentState = !!cardPaidMonths[cardName][month];
+    let newState = !currentState;
+    cardPaidMonths[cardName][month] = newState;
+
+    if (typeof expenses !== 'undefined') {
+        expenses.forEach(exp => {
+            if (exp.card === cardName) {
+                let projected = getProjectedItems().filter(i => Number(i.parentId || i.id) === Number(exp.parentId || exp.id) && i.month === month);
+                if (projected.length > 0) {
+                    if (!exp.paidMonths) exp.paidMonths = {};
+                    exp.paidMonths[month] = newState;
+                }
+            }
+        });
+    }
+
+    localStorage.setItem('srin_card_paid_months', JSON.stringify(cardPaidMonths));
+    saveData();
+    renderApp();
+
+    if (typeof showToast === 'function') {
+        showToast(newState ? `Fatura de ${cardName} (${month}) marcada como quitada!` : `Fatura de ${cardName} (${month}) reaberta.`, "success");
     }
 }
 
@@ -316,3 +360,4 @@ window.saveCard = saveCard;
 window.deleteCard = deleteCard;
 window.getCardLimitStatus = getCardLimitStatus;
 window.renderCards = renderCards;
+window.toggleCardMonthPaid = toggleCardMonthPaid;
