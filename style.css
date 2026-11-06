@@ -1,5 +1,5 @@
 /* ============================================================================ */
-/* TEMA DARK PREMIUM (ESTADO ATIVO DAS ABAS & CORREÇÃO MOBILE) - style.css      */
+/* TEMA DARK PREMIUM (PRETO PROFUNDO, VERDE NEON & MOBILE CORRIGIDO) - style.css */
 /* ============================================================================ */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -57,10 +57,9 @@ button:active {
     color: #f1f5f9;
 }
 
-/* ESTADO ATIVO DA ABA SELECIONADA (Destaque em Verde Vibrante com Brilho) */
-.nav-tabs button.active, .tabs-container button.active, 
-.nav-tabs button[aria-selected="true"],
-button.tab-active, [id*="tab"].active {
+/* ESTADO ATIVO DA ABA SELECIONADA (Destaque Absoluto em Verde Vibrante) */
+button.active, .nav-tabs button.active, .tabs-container button.active, 
+.nav-tabs button[aria-selected="true"], button.tab-active {
     background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
     color: #ffffff !important;
     border-color: #34d399 !important;
@@ -202,10 +201,19 @@ input:focus, select:focus, textarea:focus {
         width: 100% !important;
     }
 
-    div[class*="flex"] > button, .card-stat button, .stat-card button {
-        max-width: 100%;
-        font-size: 0.82rem;
-        padding: 0 10px;
+    /* FORÇAGEM ABSOLUTA PARA BOTÕES DE AÇÃO NA ABA DE SALÁRIO NO TELEMÓVEL */
+    .card-stat div.flex, .stat-card div.flex, div.flex.gap-2, div.flex.items-center {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        gap: 10px !important;
+    }
+
+    .card-stat button, .stat-card button, div.flex > button {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: unset !important;
+        height: 42px !important;
     }
 
     h2, h3, .text-xl, .text-lg {
