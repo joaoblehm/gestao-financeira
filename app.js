@@ -1,228 +1,170 @@
-/* ============================================================================ */
-/* TEMA DARK PREMIUM (CORREÇÃO DE BOTÕES DE AÇÃO MOBILE) - style.css            */
-/* ============================================================================ */
-*, *::before, *::after {
-    box-sizing: border-box;
-}
+// ============================================================================
+// MÓDULO DE INICIALIZAÇÃO DA APLICAÇÃO & NAVEGAÇÃO - app.js
+// ============================================================================
 
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: #050811;
-    color: #f1f5f9;
-    margin: 0;
-    padding: 16px;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-}
+window.expenses = window.expenses || [];
+window.cards = window.cards || [];
+window.salaryConfigs = window.salaryConfigs || [];
+window.extraIncomes = window.extraIncomes || [];
 
-input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1) hue-rotate(90deg);
-    cursor: pointer;
-}
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Aguarda OBRIGATORIAMENTE o carregamento completo dos dados da nuvem (Supabase)
+    if (typeof loadData === 'function') {
+        await loadData();
+    }
+    
+    // 2. Sincroniza o seletor de mês global com o calendário estilo Windows se disponível
+    let globalMonth = document.getElementById('globalMonth');
+    if (globalMonth && typeof monthsList !== 'undefined' && monthsList.length > 0) {
+        globalMonth.innerHTML = '';
+        monthsList.forEach(m => {
+            let opt = document.createElement('option');
+            opt.value = m;
+            opt.innerText = m;
+            globalMonth.appendChild(opt);
+        });
+        let initialMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : monthsList[0];
+        globalMonth.value = initialMonth;
+        
+        let monthTextEl = document.getElementById('globalMonthText');
+        if (monthTextEl) {
+            monthTextEl.innerText = initialMonth;
+        }
+    }
+    
+    // 3. Renderiza o aplicativo completo com os dados já presentes em memória
+    if (typeof renderApp === 'function') {
+        renderApp();
+    }
+    if (typeof loadSalaryConfig === 'function') {
+        loadSalaryConfig();
+    }
+    
+    // Força uma nova verificação imediata para garantir que o dashboard puxou os totais
+    setTimeout(() => {
+        if (typeof renderApp === 'function') renderApp();
+    }, 50);
 
-/* ============================================================================ */
-/* BOTÕES E NAVEGAÇÃO POR ABAS                                                  */
-/* ============================================================================ */
-button, .btn {
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    font-size: 0.88rem;
-    border-radius: 10px;
-    border: 1px solid transparent;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    white-space: nowrap;
-    height: 42px;
-    min-height: 42px;
-    padding: 0 14px;
-}
+    // Força a renderização inicial dos ícones
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+});
 
-button:active {
-    transform: scale(0.97);
-}
+// ================= NAVEGAÇÃO ENTRE ABAS =================
+function switchTab(tabName) {
+    // Esconde todas as abas
+    let tabs = ['tabDashboard', 'tabCards', 'tabHouse', 'tabSalary'];
+    tabs.forEach(t => {
+        let el = document.getElementById(t);
+        if (el) el.classList.add('hidden');
+    });
 
-/* Estado padrão dos botões de navegação (abas inativas) */
-.nav-tabs button, .tabs-container button, header button {
-    background-color: #0b132b;
-    border-color: #1e293b;
-    color: #94a3b8;
-}
+    // Exibe a aba selecionada
+    let targetTab = document.getElementById('tab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+    if (targetTab) targetTab.classList.remove('hidden');
 
-.nav-tabs button:hover, .tabs-container button:hover {
-    border-color: #334155;
-    color: #f1f5f9;
-}
+    // Remove a classe 'active' de TODOS os botões de topo e navegação
+    const navButtons = document.querySelectorAll('header button, .nav-tabs button, .tabs-container button');
+    navButtons.forEach(btn => btn.classList.remove('active'));
 
-/* ESTADO ATIVO DA ABA SELECIONADA (Destaque em Verde Vibrante com Brilho) */
-button.active, .nav-tabs button.active, .tabs-container button.active, 
-.nav-tabs button[aria-selected="true"], button.tab-active {
-    background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
-    color: #ffffff !important;
-    border-color: #34d399 !important;
-    font-weight: 600 !important;
-    box-shadow: 0 0 18px rgba(16, 185, 129, 0.4) !important;
-}
+    // Identifica e ilumina o botão correspondente à aba ativa com base no texto ou onclick
+    navButtons.forEach(btn => {
+        let onclickAttr = btn.getAttribute('onclick') || '';
+        let btnText = btn.innerText || '';
+        
+        let match = false;
+        if (tabName.toLowerCase() === 'dashboard' && (onclickAttr.includes('Dashboard') || btnText.includes('Painel'))) match = true;
+        if (tabName.toLowerCase() === 'cards' && (onclickAttr.includes('Cards') || btnText.includes('Cartões'))) match = true;
+        if (tabName.toLowerCase() === 'house' && (onclickAttr.includes('House') || btnText.includes('Contas'))) match = true;
+        if (tabName.toLowerCase() === 'salary' && (onclickAttr.includes('Salary') || btnText.includes('Salário'))) match = true;
 
-/* Cores de Botões Específicos */
-button.bg-emerald-600, button.bg-green-600, [id*="novo"], .btn-primary {
-    background: linear-gradient(135deg, #059669 0%, #10b981) !important;
-    color: #ffffff !important;
-    border-color: #34d399 !important;
-}
+        if (match) {
+            btn.classList.add('active');
+        }
+    });
 
-button[onclick*="Cadastrar"], button[onclick*="Card"], button[onclick*="House"] {
-    background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6) !important;
-    color: #ffffff !important;
-    border-color: #8b5cf6 !important;
-}
-
-button[onclick*="exportBackup"] {
-    background: #0b132b; border-color: #1e293b; color: #38bdf8;
-}
-button[onclick*="importBackup"] {
-    background: #0b132b; border-color: #1e293b; color: #c084fc;
-}
-button[onclick*="Clear"], button[onclick*="confirmClear"], button[onclick*="Excluir"] {
-    background: #0b132b; border-color: #1e293b; color: #f87171;
-}
-
-/* ============================================================================ */
-/* ESTRUTURA E LAYOUT GERAL                                                     */
-/* ============================================================================ */
-header, .app-header, .top-actions-container {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-.header-buttons, .top-buttons-bar, .nav-tabs, .tabs-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-}
-
-.grid-resumo, .stats-container, .dashboard-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px;
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-.card-stat, .stat-card {
-    background: #0b132b;
-    border: 1px solid #1e293b;
-    border-radius: 14px;
-    padding: 18px;
-    min-width: 0;
-    overflow: hidden;
-    position: relative;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-}
-
-/* ============================================================================ */
-/* TABELAS COM SCROLL SUAVE E COLUNAS VISÍVEIS                                  */
-/* ============================================================================ */
-.table-responsive, .table-container {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    background: #0b132b;
-    border-radius: 14px;
-    border: 1px solid #1e293b;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-    margin-bottom: 20px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-    white-space: nowrap;
-}
-
-th {
-    background-color: #050811;
-    color: #10b981;
-    font-weight: 600;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 12px 14px;
-    border-bottom: 1px solid #1e293b;
-}
-
-td {
-    padding: 12px 14px;
-    border-bottom: 1px solid #1e293b;
-    font-size: 0.85rem;
-    color: #e2e8f0;
-}
-
-/* Inputs e Selects */
-input, select, textarea {
-    font-family: 'Inter', sans-serif;
-    background-color: #050811;
-    border: 1px solid #1e293b;
-    color: #f1f5f9;
-    border-radius: 10px;
-    padding: 10px 14px;
-    outline: none;
-    width: 100%;
-    transition: border-color 0.2s ease;
-}
-
-input:focus, select:focus, textarea:focus {
-    border-color: #10b981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-}
-
-/* ============================================================================ */
-/* RESPONSIVIDADE MOBILE OTIMIZADA (< 768px)                                    */
-/* ============================================================================ */
-@media (max-width: 768px) {
-    body {
-        padding: 8px;
+    // Se o evento foi disparado diretamente por clique num botão, garante que ele recebe a classe ativa
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
     }
 
-    .header-buttons, .top-buttons-bar, .nav-tabs, .tabs-container {
-        flex-direction: column;
-        align-items: stretch;
+    // Ajusta o seletor global de categorias do topo dependendo da aba ativa
+    let filterCatSelect = document.getElementById('filterCategory');
+    if (filterCatSelect) {
+        if (tabName.toLowerCase() === 'salary' || tabName === 'Salary') {
+            filterCatSelect.innerHTML = `
+                <option value="">Todas as Entradas</option>
+                <option value="Salário">Salário</option>
+                <option value="Renda Extra">Renda Extra</option>
+            `;
+        } else {
+            filterCatSelect.innerHTML = `
+                <option value="">Todas</option>
+                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                <option value="Mercado">Mercado</option>
+                <option value="Contas de Casa">Contas de Casa</option>
+                <option value="Assinaturas">Assinaturas</option>
+            `;
+        }
     }
 
-    .nav-tabs button, .tabs-container button, .header-buttons button, .top-buttons-bar button {
-        width: 100% !important;
+    if ((tabName.toLowerCase() === 'salary' || tabName === 'Salary') && typeof initSalaryTab === 'function') {
+        initSalaryTab();
     }
 
-    /* CORREÇÃO CRUCIAL: Força os botões da aba de Salário a empilharem e ficarem dentro da caixa */
-    .card-stat .flex, .stat-card .flex, div[class*="flex"] {
-        flex-direction: column !important;
-        gap: 10px !important;
-    }
-
-    .card-stat .flex > button, .stat-card .flex > button, div[class*="flex"] > button {
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-
-    h2, h3, .text-xl, .text-lg {
-        font-size: 1.1rem !important;
-        word-break: break-word;
-    }
-
-    .grid-resumo, .stats-container, .dashboard-cards {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .table-responsive, .table-container {
-        border-right: 3px solid #10b981;
+    if (typeof renderApp === 'function') {
+        renderApp();
     }
 }
+
+/**
+ * Atualiza automaticamente a tela e a aba ativa no momento em tempo real.
+ */
+function refreshActiveView() {
+    let dashTab = document.getElementById('tabDashboard');
+    let cardsTab = document.getElementById('tabCards');
+    let houseTab = document.getElementById('tabHouse');
+    let salaryTab = document.getElementById('tabSalary');
+
+    if (dashTab && !dashTab.classList.contains('hidden') && typeof renderDashboard === 'function') {
+        renderDashboard();
+    }
+    if (cardsTab && !cardsTab.classList.contains('hidden') && typeof renderCardsView === 'function') {
+        renderCardsView();
+    }
+    if (houseTab && !houseTab.classList.contains('hidden') && typeof renderHouseView === 'function') {
+        renderHouseView();
+    }
+    if (salaryTab && !salaryTab.classList.contains('hidden')) {
+        if (typeof initSalaryTab === 'function') initSalaryTab();
+        else if (typeof loadSalaryConfig === 'function') loadSalaryConfig();
+    }
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+// Sobrescreve o renderApp global para atualizar a aba ativa instantaneamente
+window.renderApp = function() {
+    refreshActiveView();
+
+    if (typeof renderCards === 'function') {
+        renderCards();
+    }
+
+    if (typeof renderIncomesList === 'function') {
+        renderIncomesList();
+    }
+};
+
+window.addEventListener('load', () => {
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+});
+
+setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 100);
+setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 500);
+setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 1000);
