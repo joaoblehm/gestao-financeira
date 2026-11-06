@@ -1,10 +1,10 @@
 // ============================================================================
-// MÓDULO DE PERSISTÊNCIA, SUPABASE E BACKUP - storage.js
+// MÓDULO DE PERSISTÊNCIA EM NUVEM (SUPABASE) - storage.js
 // ============================================================================
 
-// Configuração do Supabase (utiliza as variáveis globais do cliente)
-const SUPABASE_URL = 'https://sua-url-aqui.supabase.co'; // Substitua pela sua URL se necessário
-const SUPABASE_ANON_KEY = 'sua-chave-aqui'; // Substitua pela sua chave se necessário
+// 🔑 CREDENCIAIS DO SUPABASE (Certifique-se de preencher com as suas chaves reais do projeto)
+const SUPABASE_URL = 'https://SEU_PROJETO.supabase.co'; 
+const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_PUBLICA_AQUI';
 
 let supabaseClient = null;
 if (typeof supabase !== 'undefined' && supabase.createClient) {
@@ -16,11 +16,38 @@ if (typeof supabase !== 'undefined' && supabase.createClient) {
 }
 
 /**
- * Carrega todos os dados da aplicação (LocalStorage ou Supabase).
+ * Carrega todos os dados diretamente do Supabase (nuvem). 
+ * Se falhar ou estiver offline, usa o cache local como segurança.
  */
-function loadData() {
+async function loadData() {
     try {
-        // Tenta carregar do localStorage como base primária/rápida
+        if (supabaseClient) {
+            let { data, error } = await supabaseClient
+                .from('app_data')
+                .select('*')
+                .eq('id', 'user_session_v1')
+                .single();
+
+            if (data && data.payload) {
+                window.cards = data.payload.cards || [];
+                window.expenses = data.payload.expenses || [];
+                window.salaryConfigs = data.payload.salaryConfigs || [];
+                window.extraIncomes = data.payload.extraIncomes || [];
+                
+                // Salva cópia local para cache instantâneo
+                localStorage.setItem('srin_cards', JSON.stringify(window.cards));
+                localStorage.setItem('srin_expenses', JSON.stringify(window.expenses));
+                localStorage.setItem('srin_salary', JSON.stringify(window.salaryConfigs));
+                localStorage.setItem('srin_incomes', JSON.stringify(window.extraIncomes));
+                return;
+            }
+        }
+    } catch (err) {
+        console.warn("Aviso: Não foi possível carregar do Supabase, a usar dados locais.", err);
+    }
+
+    // Fallback local caso haja falha de rede
+    try {
         let localCards = localStorage.getItem('srin_cards');
         let localExpenses = localStorage.getItem('srin_expenses');
         let localSalary = localStorage.getItem('srin_salary');
@@ -30,40 +57,30 @@ function loadData() {
         if (localExpenses) window.expenses = JSON.parse(localExpenses);
         if (localSalary) window.salaryConfigs = JSON.parse(localSalary);
         if (localIncomes) window.extraIncomes = JSON.parse(localIncomes);
-
-    } catch (err) {
-        console.error("Erro ao carregar dados locais:", err);
+    } catch (e) {
+        console.error("Erro ao carregar do localStorage:", e);
     }
 }
 
 /**
- * Salva todos os dados da aplicação de forma persistente.
+ * Salva localmente e sincroniza automaticamente com a nuvem (Supabase).
  */
 function saveData() {
     try {
-        if (typeof cards !== 'undefined') {
-            localStorage.setItem('srin_cards', JSON.stringify(cards));
-        }
-        if (typeof expenses !== 'undefined') {
-            localStorage.setItem('srin_expenses', JSON.stringify(expenses));
-        }
-        if (typeof salaryConfigs !== 'undefined') {
-            localStorage.setItem('srin_salary', JSON.stringify(salaryConfigs));
-        }
-        if (typeof extraIncomes !== 'undefined') {
-            localStorage.setItem('srin_incomes', JSON.stringify(extraIncomes));
-        }
+        if (typeof cards !== 'undefined') localStorage.setItem('srin_cards', JSON.stringify(cards));
+        if (typeof expenses !== 'undefined') localStorage.setItem('srin_expenses', JSON.stringify(expenses));
+        if (typeof salaryConfigs !== 'undefined') localStorage.setItem('srin_salary', JSON.stringify(salaryConfigs));
+        if (typeof extraIncomes !== 'undefined') localStorage.setItem('srin_incomes', JSON.stringify(extraIncomes));
 
-        // Se houver integração ativa com Supabase, sincroniza em background
+        // Envia para a nuvem em background
         syncToSupabase();
-
     } catch (err) {
         console.error("Erro ao salvar dados:", err);
     }
 }
 
 /**
- * Sincroniza os dados com o Supabase (se configurado).
+ * Envia o payload unificado para a tabela 'app_data' no Supabase.
  */
 async function syncToSupabase() {
     if (!supabaseClient) return;
@@ -76,17 +93,20 @@ async function syncToSupabase() {
             updated_at: new Date().toISOString()
         };
 
-        // Exemplo de salvamento na tabela padrão do sistema
-        await supabaseClient
+        let { error } = await supabaseClient
             .from('app_data')
-            .upsert({ id: 'user_session_v1', data: payload });
+            .upsert({ id: 'user_session_v1', payload: payload });
+
+        if (error) {
+            console.error("Erro no upsert do Supabase:", error);
+        }
     } catch (err) {
-        console.warn("Sincronização com Supabase em segundo plano falhou:", err);
+        console.warn("Erro na sincronização com o Supabase:", err);
     }
 }
 
 /**
- * Exporta todos os dados da aplicação em formato JSON para backup.
+ * Exporta backup em JSON (opcional, caso queira guardar uma cópia física).
  */
 function exportBackup() {
     try {
@@ -107,21 +127,14 @@ function exportBackup() {
         downloadAnchor.click();
         downloadAnchor.remove();
 
-        if (typeof showToast === 'function') {
-            showToast("Backup exportado com sucesso!", "success");
-        }
+        if (typeof showToast === 'function') showToast("Backup exportado com sucesso!", "success");
     } catch (err) {
         console.error("Erro ao exportar backup:", err);
-        if (typeof showToast === 'function') {
-            showToast("Erro ao exportar backup.", "error");
-        }
     }
 }
 
 /**
- * Importa um ficheiro de backup JSON, preservando os cartões de crédito configurados
- * e garantindo que os lançamentos importados recalculam as parcelas e datas de fechamento corretamente.
- * @param {Event} event - Evento de mudança do input file.
+ * Importa um ficheiro de backup e envia de imediato para a nuvem.
  */
 function importBackup(event) {
     const file = event.target.files[0];
@@ -130,92 +143,46 @@ function importBackup(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const content = e.target.result;
-            const parsedData = JSON.parse(content);
+            const parsedData = JSON.parse(e.target.result);
+            if (!parsedData || typeof parsedData !== 'object') throw new Error("Ficheiro inválido.");
 
-            if (!parsedData || typeof parsedData !== 'object') {
-                throw new Error("Formato de ficheiro inválido.");
-            }
-
-            // 1. Restaura os Lançamentos / Despesas garantindo normalização de data e mês
             if (Array.isArray(parsedData.expenses)) {
-                window.expenses = parsedData.expenses.map(exp => {
-                    // Garante que se vier sem data mas com startMonth, geramos uma data padrão compatível
-                    if (!exp.date && exp.startMonth && typeof monthNameToDateInput === 'function') {
-                        exp.date = monthNameToDateInput(exp.startMonth);
-                    }
-                    return exp;
-                });
+                window.expenses = parsedData.expenses;
             }
+            if (Array.isArray(parsedData.salaryConfigs)) window.salaryConfigs = parsedData.salaryConfigs;
+            if (Array.isArray(parsedData.extraIncomes)) window.extraIncomes = parsedData.extraIncomes;
+            if (Array.isArray(parsedData.cards) && parsedData.cards.length > 0) window.cards = parsedData.cards;
 
-            // 2. Restaura as Configurações de Salário e Rendas Extras
-            if (Array.isArray(parsedData.salaryConfigs)) {
-                window.salaryConfigs = parsedData.salaryConfigs;
-            }
-            if (Array.isArray(parsedData.extraIncomes)) {
-                window.extraIncomes = parsedData.extraIncomes;
-            }
+            saveData(); // Salva localmente e envia para o Supabase
 
-            // 3. Restaura os Cartões preservando os limites e dias de fechamento originais
-            if (Array.isArray(parsedData.cards) && parsedData.cards.length > 0) {
-                window.cards = parsedData.cards;
-            }
-
-            // Salva de forma persistente (LocalStorage + Supabase)
-            saveData();
-
-            // Re-renderiza a aplicação inteira para atualizar a interface com os novos dados
-            if (typeof renderApp === 'function') {
-                renderApp();
-            }
-            if (typeof loadSalaryConfig === 'function') {
-                loadSalaryConfig();
-            }
-
-            // Limpa o input file para permitir reimportar o mesmo ficheiro se necessário
+            if (typeof renderApp === 'function') renderApp();
+            if (typeof loadSalaryConfig === 'function') loadSalaryConfig();
+            
             event.target.value = '';
-
-            if (typeof showToast === 'function') {
-                showToast("Backup importado com sucesso! Dados recalculados.", "success");
-            } else {
-                alert("Backup importado com sucesso!");
-            }
-
+            if (typeof showToast === 'function') showToast("Dados importados e sincronizados com a nuvem!", "success");
         } catch (err) {
-            console.error("Erro ao processar ficheiro de backup:", err);
-            if (typeof showToast === 'function') {
-                showToast("Erro ao importar backup: Ficheiro corrompido ou inválido.", "error");
-            } else {
-                alert("Erro ao importar backup: Ficheiro corrompido ou inválido.");
-            }
+            console.error("Erro ao importar:", err);
+            if (typeof showToast === 'function') showToast("Erro ao importar backup.", "error");
         }
     };
-
     reader.readAsText(file);
 }
 
-/**
- * Limpa todos os dados da aplicação após confirmação.
- */
 function confirmClearAllData() {
     let doClear = () => {
         window.expenses = [];
         window.cards = [];
         window.salaryConfigs = [];
         window.extraIncomes = [];
-        saveData();
+        saveData(); // Atualiza na nuvem limpando os dados
         if (typeof renderApp === 'function') renderApp();
-        if (typeof showToast === 'function') {
-            showToast("Todos os registros foram apagados.", "success");
-        }
+        if (typeof showToast === 'function') showToast("Todos os registros foram apagados.", "success");
     };
 
     if (typeof showConfirmModal === 'function') {
-        showConfirmModal('Tem certeza absoluta que deseja apagar TODOS os registros do sistema?', doClear);
+        showConfirmModal('Deseja realmente apagar TODOS os registros da nuvem?', doClear);
     } else {
-        if (confirm('Tem certeza absoluta que deseja apagar TODOS os registros do sistema?')) {
-            doClear();
-        }
+        if (confirm('Deseja apagar TODOS os registros da nuvem?')) doClear();
     }
 }
 
