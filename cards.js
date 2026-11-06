@@ -151,7 +151,7 @@ function saveCard(e) {
         }
     }
 
-    if (typeof saveData === 'function') saveData();      // Salva alterações no localStorage
+    if (typeof saveData === 'function') saveData();      // Salva alterações no Supabase/localStorage
     closeCardModal(); // Fecha o modal
     if (typeof renderApp === 'function') renderApp();      // Atualiza a interface
 }
@@ -172,7 +172,7 @@ function deleteCard(id) {
         }
     };
 
-    // Utiliza o modal de confirmação personalizado do tema (em vez do confirm() nativo)
+    // Utiliza o modal de confirmação personalizado do tema
     if (typeof showConfirmModal === 'function') {
         showConfirmModal('Deseja realmente excluir este cartão de crédito?', doDelete);
     } else {
@@ -186,7 +186,7 @@ function deleteCard(id) {
  * Calcula o limite disponível de um cartão subtraindo o saldo devedor total 
  * (somatório de todas as parcelas pendentes/futuras das compras ativas) do limite total.
  * @param {string} cardName - Nome do cartão.
- * @param {string} currentMonth - Mês de referência ativo (mantido para compatibilidade).
+ * @param {string} currentMonth - Mês de referência ativo.
  * @param {number} cardLimit - Limite total cadastrado no cartão.
  * @returns {Object} Contém o total comprometido e o limite disponível calculado.
  */
@@ -238,8 +238,8 @@ function renderCards() {
         return;
     }
 
-    let globalMonthEl = document.getElementById('globalMonth');
-    let currentMonth = globalMonthEl ? globalMonthEl.value : 'Novembro/2026';
+    // Lê o mês ativo através da nova função global do calendário estilo Windows
+    let currentMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
 
     cards.forEach(card => {
         // Calcula o limite disponível com base nas parcelas pendentes totais
