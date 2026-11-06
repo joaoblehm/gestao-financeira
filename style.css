@@ -1,5 +1,5 @@
 /* ============================================================================ */
-/* TEMA DARK PREMIUM (AJUSTES FINOS DE BOTÕES E ALTURAS) - style.css            */
+/* TEMA DARK PREMIUM (CORREÇÃO DE RESPONSIVIDADE MOBILE) - style.css            */
 /* ============================================================================ */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -10,7 +10,7 @@ body {
     background-color: #050811;
     color: #f1f5f9;
     margin: 0;
-    padding: 20px;
+    padding: 16px;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
 }
@@ -21,10 +21,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* ============================================================================ */
-/* CORREÇÃO DEFINITIVA DE ALTURA E LARGURA DE TODOS OS BOTÕES                   */
+/* BOTÕES E NAVEGAÇÃO                                                           */
 /* ============================================================================ */
-
-/* Zera comportamentos indesejados e padroniza todos os botões do sistema */
 button, .btn {
     cursor: pointer;
     font-family: 'Inter', sans-serif;
@@ -33,91 +31,62 @@ button, .btn {
     border-radius: 10px;
     border: 1px solid transparent;
     transition: all 0.2s ease;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 8px !important;
-    white-space: nowrap !important; /* Impede que o texto quebre em duas linhas */
-    height: 44px !important;       /* Altura fixa profissional e elegante */
-    min-height: 44px !important;
-    padding: 0 16px !important;
-    width: auto !important;        /* Impede que fiquem esticados de forma feia */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+    height: 42px;
+    min-height: 42px;
+    padding: 0 14px;
 }
 
 button:active {
     transform: scale(0.97);
 }
 
-/* Abas de Navegação Superiores (Painel, Cartões, Contas, Salário) */
+/* Abas de Navegação Superiores */
 .nav-tabs button, .tabs-container button, header button {
-    background-color: #0b132b !important;
-    border-color: #1e293b !important;
-    color: #94a3b8 !important;
-    flex: unset !important; /* Evita que estiquem */
+    background-color: #0b132b;
+    border-color: #1e293b;
+    color: #94a3b8;
 }
 
 .nav-tabs button:hover, .tabs-container button:hover {
-    border-color: #334155 !important;
-    color: #f1f5f9 !important;
+    border-color: #334155;
+    color: #f1f5f9;
 }
 
 /* Aba Ativa */
 .nav-tabs button.active, .tabs-container button.active, 
 .nav-tabs button[aria-selected="true"] {
-    background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
-    color: #ffffff !important;
-    border-color: #34d399 !important;
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: #ffffff;
+    border-color: #34d399;
     box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
 }
 
-/* Botão Novo Lançamento (Verde Vibrante) */
+/* Cores de Botões Específicos */
 button.bg-emerald-600, button.bg-green-600, [id*="novo"], .btn-primary {
-    background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+    background: linear-gradient(135deg, #059669 0%, #10b981) !important;
     color: #ffffff !important;
     border-color: #34d399 !important;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
-/* Botões de Ação Específicos (Cadastrar Cartão, Entrada, etc.) */
 button[onclick*="Cadastrar"], button[onclick*="Card"], button[onclick*="House"] {
     background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6) !important;
     color: #ffffff !important;
     border-color: #8b5cf6 !important;
-    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
-    width: auto !important;
 }
 
-/* Exportar / Azul */
 button[onclick*="exportBackup"] {
-    background: #0b132b !important;
-    border-color: #1e293b !important;
-    color: #38bdf8 !important;
+    background: #0b132b; border-color: #1e293b; color: #38bdf8;
 }
-button[onclick*="exportBackup"]:hover {
-    background: rgba(56, 189, 248, 0.1) !important;
-    border-color: #38bdf8 !important;
-}
-
-/* Importar / Roxo Suave */
 button[onclick*="importBackup"] {
-    background: #0b132b !important;
-    border-color: #1e293b !important;
-    color: #c084fc !important;
+    background: #0b132b; border-color: #1e293b; color: #c084fc;
 }
-button[onclick*="importBackup"]:hover {
-    background: rgba(192, 132, 252, 0.1) !important;
-    border-color: #c084fc !important;
-}
-
-/* Limpar Tudo / Vermelho Alerta */
-button[onclick*="Clear"], button[onclick*="confirmClear"] {
-    background: #0b132b !important;
-    border-color: #1e293b !important;
-    color: #f87171 !important;
-}
-button[onclick*="Clear"]:hover {
-    background: rgba(248, 113, 113, 0.1) !important;
-    border-color: #f87171 !important;
+button[onclick*="Clear"], button[onclick*="confirmClear"], button[onclick*="Excluir"] {
+    background: #0b132b; border-color: #1e293b; color: #f87171;
 }
 
 /* ============================================================================ */
@@ -126,31 +95,31 @@ button[onclick*="Clear"]:hover {
 header, .app-header, .top-actions-container {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     width: 100%;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .header-buttons, .top-buttons-bar, .nav-tabs, .tabs-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
 }
 
 .grid-resumo, .stats-container, .dashboard-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 16px;
     width: 100%;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .card-stat, .stat-card {
     background: #0b132b;
     border: 1px solid #1e293b;
     border-radius: 14px;
-    padding: 20px;
+    padding: 18px;
     min-width: 0;
     overflow: hidden;
     position: relative;
@@ -158,7 +127,7 @@ header, .app-header, .top-actions-container {
 }
 
 /* ============================================================================ */
-/* TABELAS                                                                      */
+/* TABELAS COM SCROLL SUAVE E COLUNAS VISÍVEIS                                  */
 /* ============================================================================ */
 .table-responsive, .table-container {
     width: 100%;
@@ -168,7 +137,7 @@ header, .app-header, .top-actions-container {
     border-radius: 14px;
     border: 1px solid #1e293b;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 table {
@@ -182,17 +151,17 @@ th {
     background-color: #050811;
     color: #10b981;
     font-weight: 600;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-bottom: 1px solid #1e293b;
 }
 
 td {
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-bottom: 1px solid #1e293b;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #e2e8f0;
 }
 
@@ -215,13 +184,14 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ============================================================================ */
-/* RESPONSIVIDADE MOBILE                                                        */
+/* RESPONSIVIDADE MOBILE OTIMIZADA (< 768px)                                    */
 /* ============================================================================ */
 @media (max-width: 768px) {
     body {
-        padding: 10px;
+        padding: 8px;
     }
 
+    /* Botões do topo e navegação viram blocos empilhados ajustados */
     .header-buttons, .top-buttons-bar, .nav-tabs, .tabs-container {
         flex-direction: column;
         align-items: stretch;
@@ -229,5 +199,29 @@ input:focus, select:focus, textarea:focus {
 
     .nav-tabs button, .tabs-container button, .header-buttons button, .top-buttons-bar button {
         width: 100% !important;
+    }
+
+    /* Corrige o transbordo nos botões de Salário e Renda */
+    div[class*="flex"] > button, .card-stat button, .stat-card button {
+        max-width: 100%;
+        font-size: 0.82rem;
+        padding: 0 10px;
+    }
+
+    /* Ajuste de títulos longos como em Contas da Casa para não quebrar a caixa */
+    h2, h3, .text-xl, .text-lg {
+        font-size: 1.1rem !important;
+        word-break: break-word;
+    }
+
+    /* Garante que os cartões de resumo e blocos internos respeitam as margens */
+    .grid-resumo, .stats-container, .dashboard-cards {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    /* Adiciona indicação visual lateral nas tabelas para scroll horizontal mais intuitivo */
+    .table-responsive, .table-container {
+        border-right: 3px solid #10b981;
     }
 }
