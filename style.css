@@ -1,5 +1,5 @@
 /* ============================================================================ */
-/* ESTILOS GLOBAIS & RESET                                                      */
+/* TEMA DARK PREMIUM (PRETO, VERDE & CORES DIVERTIDAS) - style.css              */
 /* ============================================================================ */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -7,8 +7,8 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #0f172a;
-    color: #f8fafc;
+    background-color: #050811; /* Preto profundo / Dark imersivo */
+    color: #f1f5f9;
     margin: 0;
     padding: 16px;
     -webkit-font-smoothing: antialiased;
@@ -16,15 +16,13 @@ body {
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
+    filter: invert(1) hue-rotate(90deg); /* Destaque verde/divertido no calendário */
     cursor: pointer;
 }
 
 /* ============================================================================ */
 /* CABEÇALHO E BOTÕES SUPERIORES RESPONSIVOS                                    */
 /* ============================================================================ */
-
-/* Garante que o topo da aplicação se comporta bem em qualquer tela */
 header, .app-header, .top-actions-container {
     display: flex;
     flex-direction: column;
@@ -33,11 +31,10 @@ header, .app-header, .top-actions-container {
     margin-bottom: 20px;
 }
 
-/* Grupo de botões superiores fluidos */
 .header-buttons, .top-buttons-bar, .flex.gap-2 {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
 }
 
@@ -46,7 +43,7 @@ header, .app-header, .top-actions-container {
     min-width: 130px;
 }
 
-/* Navegação por abas responsiva (Painel, Cartões, Casa, Salário) */
+/* Navegação por abas com verde vivo nos ativos */
 .nav-tabs, .tabs-container, .flex.gap-2.mb-6 {
     display: flex;
     flex-wrap: wrap;
@@ -59,10 +56,22 @@ header, .app-header, .top-actions-container {
     min-width: 140px;
     text-align: center;
     justify-content: center;
+    background-color: #0b1329;
+    border: 1px solid #1e293b;
+    color: #94a3b8;
+}
+
+/* Estado ativo das abas com toque verde vibrante */
+.nav-tabs button.active, .tabs-container button.active, 
+.nav-tabs button[aria-selected="true"] {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: #ffffff;
+    border-color: #34d399;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
 }
 
 /* ============================================================================ */
-/* LAYOUT E CONTAINERS DE RESUMO (KPIs)                                         */
+/* CARDS E PAINÉIS DE RESUMO (KPIs)                                             */
 /* ============================================================================ */
 .grid-resumo, .stats-container, .dashboard-cards {
     display: grid;
@@ -73,19 +82,20 @@ header, .app-header, .top-actions-container {
 }
 
 .card-stat, .stat-card {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 12px;
+    background: #0b132b; /* Preto azulado elegante */
+    border: 1px solid #1e293b;
+    border-radius: 14px;
     padding: 20px;
     min-width: 0;
     overflow: hidden;
     position: relative;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
     transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .card-stat:hover, .stat-card:hover {
-    border-color: #475569;
+    border-color: #10b981; /* Borda verde ao passar o mouse */
+    transform: translateY(-2px);
 }
 
 /* ============================================================================ */
@@ -95,10 +105,10 @@ header, .app-header, .top-actions-container {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    background: #1e293b;
-    border-radius: 12px;
-    border: 1px solid #334155;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    background: #0b132b;
+    border-radius: 14px;
+    border: 1px solid #1e293b;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
     margin-bottom: 24px;
 }
 
@@ -110,19 +120,19 @@ table {
 }
 
 th {
-    background-color: #0f172a;
-    color: #94a3b8;
+    background-color: #050811;
+    color: #10b981; /* Cabeçalhos em verde vibrante */
     font-weight: 600;
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding: 12px 14px;
-    border-bottom: 1px solid #334155;
+    padding: 14px 16px;
+    border-bottom: 1px solid #1e293b;
 }
 
 td {
-    padding: 12px 14px;
-    border-bottom: 1px solid #334155;
+    padding: 14px 16px;
+    border-bottom: 1px solid #1e293b;
     font-size: 0.9rem;
     color: #e2e8f0;
 }
@@ -132,7 +142,7 @@ tbody tr {
 }
 
 tbody tr:hover {
-    background-color: rgba(51, 65, 85, 0.4);
+    background-color: rgba(16, 185, 129, 0.05); /* Leve toque verde no hover da linha */
 }
 
 tbody tr:last-child td {
@@ -140,28 +150,69 @@ tbody tr:last-child td {
 }
 
 /* ============================================================================ */
-/* INPUTS, SELECTS E FORMULÁRIOS                                                */
+/* BOTÕES COM CORES DIVERTIDAS E VIBRANTES                                       */
 /* ============================================================================ */
 button, .btn {
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    border-radius: 8px;
+    font-weight: 600;
+    border-radius: 10px;
     transition: all 0.2s ease;
     border: none;
-    padding: 10px 14px;
+    padding: 10px 16px;
+    color: #ffffff;
 }
 
 button:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
 }
 
+/* Botão Principal / Novo Lançamento (Verde Vibrante Gamer/Neon) */
+button.bg-emerald-600, button.bg-green-600, [id*="novo"], .btn-primary {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+button.bg-emerald-600:hover, button.bg-green-600:hover {
+    background: linear-gradient(135deg, #047857 0%, #059669 100%) !important;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+}
+
+/* Botões de Ação Secundários com Cores Divertidas/Destacadas */
+/* Exportar / Azul Tecnológico */
+button[onclick*="exportBackup"], .btn-export {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6) !important;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+button[onclick*="exportBackup"]:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb) !important;
+}
+
+/* Importar / Roxo / Magenta Divertido */
+button[onclick*="importBackup"], .btn-import {
+    background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6) !important;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+button[onclick*="importBackup"]:hover {
+    background: linear-gradient(135deg, #6d28d9 0%, #7c3aed) !important;
+}
+
+/* Limpar Tudo / Vermelho Alerta Estilizado */
+button[onclick*="Clear"], button[onclick*="confirmClear"], .btn-danger {
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444) !important;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+button[onclick*="Clear"]:hover {
+    background: linear-gradient(135deg, #b91c1c 0%, #dc2626) !important;
+}
+
+/* Inputs e Selects estilizados no tema preto/verde */
 input, select, textarea {
     font-family: 'Inter', sans-serif;
-    background-color: #0f172a;
-    border: 1px solid #334155;
-    color: #f8fafc;
-    border-radius: 8px;
+    background-color: #050811;
+    border: 1px solid #1e293b;
+    color: #f1f5f9;
+    border-radius: 10px;
     padding: 10px 14px;
     outline: none;
     width: 100%;
@@ -169,8 +220,8 @@ input, select, textarea {
 }
 
 input:focus, select:focus, textarea:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
 }
 
 /* ============================================================================ */
@@ -181,7 +232,6 @@ input:focus, select:focus, textarea:focus {
         padding: 8px;
     }
 
-    /* Faz com que todos os botões do topo ocupem linhas organizadas e estiquem bem */
     .header-buttons, .top-buttons-bar, .nav-tabs, .tabs-container {
         flex-direction: column;
     }
@@ -191,7 +241,6 @@ input:focus, select:focus, textarea:focus {
         min-width: 100%;
     }
 
-    /* Cards de resumo emparelhados em coluna única no telemóvel */
     .grid-resumo, .stats-container, .dashboard-cards {
         grid-template-columns: 1fr;
         gap: 12px;
@@ -199,12 +248,6 @@ input:focus, select:focus, textarea:focus {
 
     .card-stat, .stat-card {
         padding: 16px;
-    }
-
-    /* Ajuste de filtros de busca e seleção no telemóvel */
-    .filter-bar, .search-container {
-        flex-direction: column;
-        gap: 8px;
     }
 
     th, td {
