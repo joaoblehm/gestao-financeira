@@ -1,7 +1,15 @@
+// ============================================================================
+// MÓDULO DE INICIALIZAÇÃO DA APLICAÇÃO, NAVEGAÇÃO & PAGINAÇÃO - app.js
+// ============================================================================
+
 window.expenses = window.expenses || [];
 window.cards = window.cards || [];
 window.salaryConfigs = window.salaryConfigs || [];
 window.extraIncomes = window.extraIncomes || [];
+
+// Variáveis globais para controlo da paginação (40 itens por página)
+window.currentPage = 1;
+window.itemsPerPage = 40;
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (typeof loadData === 'function') {
@@ -42,7 +50,64 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// ================= SISTEMA DE CATEGORIAS & PAGINAÇÃO =================
+
+/**
+ * Retorna a classe CSS correspondente à categoria para colorir os badges no dashboard
+ */
+function getCategoryClass(category) {
+    if (!category) return 'cat-outro';
+    let cat = category.toLowerCase();
+    if (cat.includes('cartão') || cat.includes('credito')) return 'cat-cartao';
+    if (cat.includes('mercado')) return 'cat-mercado';
+    if (cat.includes('casa') || cat.includes('água') || cat.includes('luz')) return 'cat-casa';
+    if (cat.includes('assinatura')) return 'cat-assinaturas';
+    if (cat.includes('salário')) return 'cat-salario';
+    if (cat.includes('extra')) return 'cat-extra';
+    return 'cat-outro';
+}
+
+/**
+ * Retorna os itens fatiados para a página atual (limite de 40 itens)
+ */
+function paginateItems(itemsArray) {
+    let startIndex = (window.currentPage - 1) * window.itemsPerPage;
+    let endIndex = startIndex + window.itemsPerPage;
+    return itemsArray.slice(startIndex, endIndex);
+}
+
+/**
+ * Renderiza os controlos de paginação (Anterior / Próxima) num contentor
+ */
+function renderPaginationControls(totalItems, containerId) {
+    let totalPages = Math.ceil(totalItems / window.itemsPerPage);
+    let container = document.getElementById(containerId);
+    
+    if (!container) return;
+    if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; margin-top: 10px; width: 100%;">
+            <button onclick="changePage(-1)" ${window.currentPage === 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} class="btn">Anterior</button>
+            <span style="font-size: 0.85rem; color: #94a3b8;">Página ${window.currentPage} de ${totalPages} (${totalItems} itens)</span>
+            <button onclick="changePage(1)" ${window.currentPage >= totalPages ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} class="btn">Próxima</button>
+        </div>
+    `;
+}
+
+function changePage(direction) {
+    window.currentPage += direction;
+    if (typeof renderApp === 'function') renderApp();
+}
+
+// ================= NAVEGAÇÃO ENTRE ABAS =================
 function switchTab(tabName) {
+    // Sempre que muda de aba, reinicia para a página 1
+    window.currentPage = 1;
+
     let tabs = ['tabDashboard', 'tabCards', 'tabHouse', 'tabSalary'];
     tabs.forEach(t => {
         let el = document.getElementById(t);
