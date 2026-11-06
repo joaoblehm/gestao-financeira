@@ -2,9 +2,8 @@
 // MÓDULO DE PERSISTÊNCIA EM NUVEM (SUPABASE) - storage.js
 // ============================================================================
 
-// 🔑 CREDENCIAIS DO SUPABASE (Certifique-se de preencher com as suas chaves reais do projeto)
-const SUPABASE_URL = 'https://SEU_PROJETO.supabase.co'; 
-const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_PUBLICA_AQUI';
+const SUPABASE_URL = 'https://tmffettfmigsgdonjuyz.supabase.co'; 
+const SUPABASE_ANON_KEY = 'sb_publishable_dKkZ5FmlvJXrMqhDG-YTvg_rXBWdgsu';
 
 let supabaseClient = null;
 if (typeof supabase !== 'undefined' && supabase.createClient) {
@@ -106,7 +105,7 @@ async function syncToSupabase() {
 }
 
 /**
- * Exporta backup em JSON (opcional, caso queira guardar uma cópia física).
+ * Exporta backup em JSON (opcional).
  */
 function exportBackup() {
     try {
