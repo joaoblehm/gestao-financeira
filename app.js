@@ -1,19 +1,13 @@
-// ============================================================================
-// MÓDULO DE INICIALIZAÇÃO DA APLICAÇÃO & NAVEGAÇÃO - app.js
-// ============================================================================
-
 window.expenses = window.expenses || [];
 window.cards = window.cards || [];
 window.salaryConfigs = window.salaryConfigs || [];
 window.extraIncomes = window.extraIncomes || [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Aguarda OBRIGATORIAMENTE o carregamento completo dos dados da nuvem (Supabase)
     if (typeof loadData === 'function') {
         await loadData();
     }
     
-    // 2. Sincroniza o seletor de mês global com o calendário estilo Windows se disponível
     let globalMonth = document.getElementById('globalMonth');
     if (globalMonth && typeof monthsList !== 'undefined' && monthsList.length > 0) {
         globalMonth.innerHTML = '';
@@ -32,7 +26,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // 3. Renderiza o aplicativo completo com os dados já presentes em memória
     if (typeof renderApp === 'function') {
         renderApp();
     }
@@ -40,35 +33,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadSalaryConfig();
     }
     
-    // Força uma nova verificação imediata para garantir que o dashboard puxou os totais
     setTimeout(() => {
         if (typeof renderApp === 'function') renderApp();
     }, 50);
 
-    // Força a renderização inicial dos ícones
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
 });
 
-// ================= NAVEGAÇÃO ENTRE ABAS =================
 function switchTab(tabName) {
-    // Esconde todas as abas
     let tabs = ['tabDashboard', 'tabCards', 'tabHouse', 'tabSalary'];
     tabs.forEach(t => {
         let el = document.getElementById(t);
         if (el) el.classList.add('hidden');
     });
 
-    // Exibe a aba selecionada
     let targetTab = document.getElementById('tab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
     if (targetTab) targetTab.classList.remove('hidden');
 
-    // Remove a classe 'active' de TODOS os botões de topo e navegação
     const navButtons = document.querySelectorAll('header button, .nav-tabs button, .tabs-container button');
     navButtons.forEach(btn => btn.classList.remove('active'));
 
-    // Identifica e ilumina o botão correspondente à aba ativa com base no texto ou onclick
     navButtons.forEach(btn => {
         let onclickAttr = btn.getAttribute('onclick') || '';
         let btnText = btn.innerText || '';
@@ -84,12 +70,10 @@ function switchTab(tabName) {
         }
     });
 
-    // Se o evento foi disparado diretamente por clique num botão, garante que ele recebe a classe ativa
     if (event && event.currentTarget) {
         event.currentTarget.classList.add('active');
     }
 
-    // Ajusta o seletor global de categorias do topo dependendo da aba ativa
     let filterCatSelect = document.getElementById('filterCategory');
     if (filterCatSelect) {
         if (tabName.toLowerCase() === 'salary' || tabName === 'Salary') {
@@ -118,9 +102,6 @@ function switchTab(tabName) {
     }
 }
 
-/**
- * Atualiza automaticamente a tela e a aba ativa no momento em tempo real.
- */
 function refreshActiveView() {
     let dashTab = document.getElementById('tabDashboard');
     let cardsTab = document.getElementById('tabCards');
@@ -146,7 +127,6 @@ function refreshActiveView() {
     }
 }
 
-// Sobrescreve o renderApp global para atualizar a aba ativa instantaneamente
 window.renderApp = function() {
     refreshActiveView();
 
