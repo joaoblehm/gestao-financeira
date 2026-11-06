@@ -1,5 +1,5 @@
 // ============================================================================
-// MÓDULO DE INICIALIZAÇÃO DA APLICAÇÃO, NAVEGAÇÃO & PAGINAÇÃO - app.js
+// MÓDULO DE INICIALIZAÇÃO DA APLICAÇÃO, NAVEGAÇÃO, PAGINAÇÃO & RENDAS - app.js
 // ============================================================================
 
 window.expenses = window.expenses || [];
@@ -103,9 +103,87 @@ function changePage(direction) {
     if (typeof renderApp === 'function') renderApp();
 }
 
+// ================= LÓGICA DE PROPAGAÇÃO DE RENDAS / SALÁRIOS =================
+/**
+ * Retorna as rendas e salários ativos para o mês selecionado.
+ * O valor mantém-se do mês lançado em diante até ser marcado como usado.
+ */
+function getActiveIncomesForMonth(targetMonth) {
+    if (typeof extraIncomes === 'undefined' || !Array.isArray(extraIncomes)) return [];
+
+    const monthOrder = {
+        'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4,
+        'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8,
+        'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
+    };
+
+    function parseMonthYear(mStr) {
+        if (!mStr) return { monthNum: 1, year: 2026 };
+        let parts = mStr.split('/');
+        let mName = (parts[0] || '').trim();
+        let year = parseInt(parts[1]) || 2026;
+        return { monthNum: monthOrder[mName] || 1, year: year };
+    }
+
+    let target = parseMonthYear(targetMonth);
+    let targetIndex = target.year * 12 + target.monthNum;
+
+    let activeIncomes = [];
+
+    extraIncomes.forEach(inc => {
+        let incMonthStr = inc.month || targetMonth;
+        let incDateParsed = parseMonthYear(incMonthStr);
+        let incIndex = incDateParsed.year * 12 + incDateParsed.monthNum;
+
+        // Só considera da data de lançamento em diante
+        if (targetIndex >= incIndex) {
+            let usedMonths = inc.usedMonths || {};
+            let isUsedBeforeOrCurrent = false;
+
+            // Verifica se foi marcado como usado em algum mês anterior ou igual ao alvo
+            for (let mKey in usedMonths) {
+                if (usedMonths[mKey] === true) {
+                    let usedParsed = parseMonthYear(mKey);
+                    let usedIndex = usedParsed.year * 12 + usedParsed.monthNum;
+                    if (usedIndex <= targetIndex) {
+                        isUsedBeforeOrCurrent = true;
+                        break;
+                    }
+                }
+            }
+
+            // Se não foi usado ainda, propaga para o mês atual!
+            if (!isUsedBeforeOrCurrent) {
+                activeIncomes.push({
+                    ...inc,
+                    effectiveMonth: targetMonth
+                });
+            }
+        }
+    });
+
+    return activeIncomes;
+}
+
+/**
+ * Alterna o estado de uso de uma renda/salário num determinado mês
+ */
+function toggleIncomeUsed(incomeId, currentMonth) {
+    if (typeof extraIncomes === 'undefined') return;
+    let inc = extraIncomes.find(e => Number(e.id || e.parentId) === Number(incomeId));
+    if (inc) {
+        if (!inc.usedMonths) inc.usedMonths = {};
+        inc.usedMonths[currentMonth] = !inc.usedMonths[currentMonth];
+        if (typeof saveData === 'function') saveData();
+        if (typeof renderApp === 'function') renderApp();
+        if (typeof showToast === 'function') {
+            showToast(inc.usedMonths[currentMonth] ? `Entrada marcada como usada em ${currentMonth}!` : `Entrada reativada.`, "success");
+        }
+    }
+}
+
 // ================= NAVEGAÇÃO ENTRE ABAS =================
 function switchTab(tabName) {
-    // Sempre que muda de aba, reinicia para a página 1
     window.currentPage = 1;
 
     let tabs = ['tabDashboard', 'tabCards', 'tabHouse', 'tabSalary'];
