@@ -1,4 +1,6 @@
-// ================= INICIALIZAÇÃO DA APLICAÇÃO =================
+// ============================================================================
+// INICIALIZAÇÃO DA APLICAÇÃO & NAVEGAÇÃO - app.js
+// ============================================================================
 
 window.expenses = window.expenses || [];
 window.cards = window.cards || [];
@@ -6,12 +8,12 @@ window.salaryConfigs = window.salaryConfigs || [];
 window.extraIncomes = window.extraIncomes || [];
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Carrega os dados do localStorage
+    // 1. Carrega os dados do localStorage/Supabase
     loadData();
     
-    // 2. Popula o seletor de meses globais antes de renderizar
+    // 2. Sincroniza o seletor de mês global com o calendário estilo Windows se disponível
     let globalMonth = document.getElementById('globalMonth');
-    if (globalMonth && typeof monthsList !== 'undefined') {
+    if (globalMonth && typeof monthsList !== 'undefined' && monthsList.length > 0) {
         globalMonth.innerHTML = '';
         monthsList.forEach(m => {
             let opt = document.createElement('option');
@@ -19,7 +21,15 @@ document.addEventListener('DOMContentLoaded', () => {
             opt.innerText = m;
             globalMonth.appendChild(opt);
         });
-        globalMonth.value = monthsList[0];
+        // Define o mês inicial utilizando a função global do calendário ou o primeiro da lista
+        let initialMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : monthsList[0];
+        globalMonth.value = initialMonth;
+        
+        // Garante que o texto do botão do calendário reflete o mês inicial correto
+        let monthTextEl = document.getElementById('globalMonthText');
+        if (monthTextEl) {
+            monthTextEl.innerText = initialMonth;
+        }
     }
     
     // 3. Renderiza o aplicativo completo
@@ -108,18 +118,6 @@ function refreshActiveView() {
 // Sobrescreve o renderApp global para atualizar a aba ativa instantaneamente
 window.renderApp = function() {
     refreshActiveView();
-};
-
-// Garante o carregamento dos ícones do Lucide assim que a janela estiver totalmente carregada
-window.addEventListener('load', () => {
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-});
-
-
-function renderApp() {
-    // ... código de renderização do dashboard, etc. ...
 
     // Garante que os cartões são atualizados com a nova lógica de limite disponível
     if (typeof renderCards === 'function') {
@@ -130,8 +128,14 @@ function renderApp() {
     if (typeof renderIncomesList === 'function') {
         renderIncomesList();
     }
-}
+};
 
+// Garante o carregamento dos ícones do Lucide assim que a janela estiver totalmente carregada
+window.addEventListener('load', () => {
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+});
 
 // Checagens de segurança adicionais para injetar os ícones sem falhas
 setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 100);
