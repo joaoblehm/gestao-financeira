@@ -1,5 +1,166 @@
-body { font-family: 'Inter', sans-serif; }
+/* ============================================================================ */
+/* ESTILOS GLOBAIS & RESET                                                      */
+/* ============================================================================ */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #0f172a; /* Fundo escuro moderno (Slate 900) */
+    color: #f8fafc;
+    margin: 0;
+    padding: 16px;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Tratamento do ícone do calendário para inputs de data */
 input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
     cursor: pointer;
+}
+
+/* ============================================================================ */
+/* LAYOUT E CONTAINERS RESPONSIVOS                                              */
+/* ============================================================================ */
+
+/* Grelha dos 4 cards de resumo do topo */
+.grid-resumo, .stats-container, .dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+/* Estilo unificado para os cards de estatísticas */
+.card-stat, .stat-card {
+    background: #1e293b; /* Slate 800 */
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.card-stat:hover, .stat-card:hover {
+    border-color: #475569;
+    transform: translateY(-2px);
+}
+
+/* ============================================================================ */
+/* TABELAS FLUIDAS E RESPONSIVAS                                                */
+/* ============================================================================ */
+.table-responsive, .table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background: #1e293b;
+    border-radius: 12px;
+    border: 1px solid #334155;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    white-space: nowrap; /* Evita quebra feia de texto */
+}
+
+th {
+    background-color: #0f172a;
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 14px 16px;
+    border-bottom: 1px solid #334155;
+}
+
+td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #334155;
+    font-size: 0.95rem;
+    color: #e2e8f0;
+}
+
+tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+tbody tr:hover {
+    background-color: rgba(51, 65, 85, 0.4);
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ============================================================================ */
+/* BOTÕES E FORMULÁRIOS PROFISSIONAIS                                           */
+/* ============================================================================ */
+button, .btn {
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+input, select, textarea {
+    font-family: 'Inter', sans-serif;
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    color: #f8fafc;
+    border-radius: 8px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* ============================================================================ */
+/* AJUSTES RESPONSIVOS PARA DISPOSITIVOS MÓVEIS (< 768px)                       */
+/* ============================================================================ */
+@media (max-width: 768px) {
+    body {
+        padding: 8px;
+    }
+
+    /* Empilha e organiza melhor os botões de topo no telemóvel */
+    .top-actions, .header-buttons, header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    /* Os cartões de resumo passam a ocupar 100% da largura em coluna */
+    .grid-resumo, .stats-container, .dashboard-cards {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    /* Reduz levemente o espaçamento interno em telas muito pequenas */
+    .card-stat, .stat-card {
+        padding: 16px;
+    }
+
+    th, td {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+    }
 }
