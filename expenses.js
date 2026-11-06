@@ -12,32 +12,70 @@ function getProjectedItems() {
     
     expenses.forEach(exp => {
         let startIndex = typeof monthsList !== 'undefined' ? monthsList.indexOf(exp.startMonth) : 0;
-        if (startIndex === -1) startIndex = 0;
         let instCount = exp.totalInst || 1;
+        
+        // Se o mês inicial não estiver na monthsList estática mas for válido, podemos gerar dinamicamente ou calcular via índice de meses
+        if (startIndex === -1 && exp.startMonth) {
+            // Se houver suporte a cálculo livre de meses por nome, geramos a partir de Janeiro de 2026 por exemplo,
+            // ou mapeamos com base numa função de offset de meses se necessário.
+            startIndex = 0; 
+        }
         
         if (!exp.paidMonths) exp.paidMonths = {};
 
+        // Como agora temos navegação livre por qualquer mês/ano no calendário estilo Windows,
+        // vamos calcular o mês de cada parcela iterando os meses sequencialmente a partir do startMonth.
+        let currentMonthName = exp.startMonth || "Novembro/2026";
+        
         for (let i = 0; i < instCount; i++) {
-            let targetMonthIndex = startIndex + i;
-            if (typeof monthsList !== 'undefined' && targetMonthIndex < monthsList.length) {
-                let targetMonth = monthsList[targetMonthIndex];
-                let isPaid = !!exp.paidMonths[targetMonth];
-                projectedItems.push({
-                    id: exp.id,
-                    parentId: exp.parentId || exp.id,
-                    month: targetMonth,
-                    desc: exp.desc,
-                    category: exp.category,
-                    card: exp.card || '-',
-                    instStr: `${i + 1} de ${instCount}`,
-                    amount: exp.amount,
-                    total: exp.total,
-                    paid: isPaid
-                });
+            let targetMonth = currentMonthName;
+            if (i > 0) {
+                targetMonth = addMonthsToMonthName(exp.startMonth || "Novembro/2026", i);
             }
+            
+            let isPaid = !!exp.paidMonths[targetMonth];
+            projectedItems.push({
+                id: exp.id,
+                parentId: exp.parentId || exp.id,
+                month: targetMonth,
+                desc: exp.desc,
+                category: exp.category,
+                card: exp.card || '-',
+                instStr: `${i + 1} de ${instCount}`,
+                amount: exp.amount,
+                total: exp.total,
+                paid: isPaid
+            });
         }
     });
     return projectedItems;
+}
+
+/**
+ * Função auxiliar para somar meses a uma string de competência (ex: "Novembro/2026" + 1 = "Dezembro/2026").
+ */
+function addMonthsToMonthName(monthStr, addCount) {
+    const mapNamesBack = {
+        'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4,
+        'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8,
+        'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
+    };
+    const mapMonthsInv = {
+        1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+        5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+        9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+    };
+
+    if (!monthStr || !monthStr.includes('/')) return monthStr;
+    let [mName, yearStr] = monthStr.split('/');
+    let monthNum = mapNamesBack[mName] || 11;
+    let year = parseInt(yearStr, 10) || 2026;
+
+    let totalMonths = (year * 12) + (monthNum - 1) + addCount;
+    let newYear = Math.floor(totalMonths / 12);
+    let newMonthNum = (totalMonths % 12) + 1;
+
+    return `${mapMonthsInv[newMonthNum]}/${newYear}`;
 }
 
 /**
@@ -67,10 +105,19 @@ function openExpenseModal() {
     let expDate = document.getElementById('expDate');
     if (expDate) expDate.value = new Date().toISOString().split('T')[0];
 
-    let globalMonth = document.getElementById('globalMonth');
+    // Lê o mês ativo através da função global do calendário estilo Windows
+    let currentMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
     let expMonth = document.getElementById('expMonth');
-    if (expMonth && globalMonth) {
-        expMonth.value = globalMonth.value;
+    if (expMonth) {
+        // Garante que a opção existe no select ou adiciona-a dinamicamente
+        let exists = Array.from(expMonth.options).some(opt => opt.value === currentMonth);
+        if (!exists) {
+            let opt = document.createElement('option');
+            opt.value = currentMonth;
+            opt.innerText = currentMonth;
+            expMonth.appendChild(opt);
+        }
+        expMonth.value = currentMonth;
     }
 
     if (typeof populateCardDropdown === 'function') populateCardDropdown();
@@ -78,23 +125,21 @@ function openExpenseModal() {
 }
 
 /**
- * Cria dinamicamente o HTML do modal de despesas no DOM se ele estiver em falta,
- * preenchendo o seletor de meses com a lista dinâmica completa (monthsList).
+ * Cria dinamicamente o HTML do modal de despesas no DOM se ele estiver em falta.
  */
 function createExpenseModalElement() {
     if (document.getElementById('expenseModal')) return;
 
-    let monthsOptionsHtml = '';
-    if (typeof monthsList !== 'undefined' && Array.isArray(monthsList)) {
-        monthsList.forEach(m => {
-            monthsOptionsHtml += `<option value="${m}">${m}</option>`;
-        });
-    } else {
-        monthsOptionsHtml = `
-            <option value="Novembro/2026">Novembro/2026</option>
-            <option value="Dezembro/2026">Dezembro/2026</option>
-            <option value="Janeiro/2027">Janeiro/2027</option>
-        `;
+    let currentMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : 'Novembro/2026';
+    let monthsOptionsHtml = `<option value="${currentMonth}">${currentMonth}</option>`;
+    
+    // Adiciona alguns meses futuros por conveniência
+    let parts = currentMonth.split('/');
+    if (parts.length === 2) {
+        for (let i = 1; i <= 12; i++) {
+            let mStr = addMonthsToMonthName(currentMonth, i);
+            monthsOptionsHtml += `<option value="${mStr}">${mStr}</option>`;
+        }
     }
 
     let div = document.createElement('div');
@@ -271,7 +316,16 @@ function editExpense(parentId) {
     if (titleEl) titleEl.innerText = 'Editar Lançamento';
 
     let monthSelect = document.getElementById('expMonth');
-    if (monthSelect && exp.startMonth) monthSelect.value = exp.startMonth;
+    if (monthSelect && exp.startMonth) {
+        let exists = Array.from(monthSelect.options).some(opt => opt.value === exp.startMonth);
+        if (!exists) {
+            let opt = document.createElement('option');
+            opt.value = exp.startMonth;
+            opt.innerText = exp.startMonth;
+            monthSelect.appendChild(opt);
+        }
+        monthSelect.value = exp.startMonth;
+    }
 
     let expDesc = document.getElementById('expDesc');
     if (expDesc) expDesc.value = exp.desc || '';
