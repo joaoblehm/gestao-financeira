@@ -1,5 +1,5 @@
 // ============================================================================
-// MÓDULO DE ANÁLISE AVANÇADA E FLUXO - analytics.js (Filtro por Data Real)
+// MÓDULO DE ANÁLISE AVANÇADA E FLUXO - analytics.js (Filtro de Data Robusto)
 // ============================================================================
 
 window.analyticsChartInstance = null;
@@ -204,6 +204,24 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// Função auxiliar robusta para extrair o dia com segurança de qualquer formato (YYYY-MM-DD, DD/MM, etc.)
+function extractDay(dateStr) {
+    if (!dateStr) return '01';
+    let s = String(dateStr).trim();
+    // Se estiver no formato ISO "2026-11-07"
+    if (s.includes('-')) {
+        let parts = s.split('-');
+        if (parts.length >= 3) return parts[2].padStart(2, '0');
+    }
+    // Se estiver no formato "07/11/2026" ou "07/11"
+    if (s.includes('/')) {
+        let parts = s.split('/');
+        return parts[0].padStart(2, '0');
+    }
+    // Se for só o número "7" ou "07"
+    return s.padStart(2, '0');
+}
+
 function updateAnalyticsView() {
     const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : 'Novembro/2026';
     const typeFilter = document.getElementById('anlyTypeFilter')?.value || 'expenses';
@@ -212,7 +230,6 @@ function updateAnalyticsView() {
 
     let dataset = [];
 
-    // Busca direta em todos os lançamentos brutos salvos (loadExpenses / storage) para respeitar a data real da compra
     let rawExpenses = [];
     if (typeof loadExpenses === 'function') {
         rawExpenses = loadExpenses();
@@ -224,8 +241,9 @@ function updateAnalyticsView() {
 
     if (typeFilter === 'expenses' || typeFilter === 'all') {
         rawExpenses.forEach(item => {
+            let extractedDay = extractDay(item.date);
             dataset.push({
-                date: item.date || '01',
+                date: extractedDay,
                 month: item.month || selectedMonth,
                 desc: item.desc,
                 category: item.category,
@@ -244,8 +262,9 @@ function updateAnalyticsView() {
             try { incomes = JSON.parse(localStorage.getItem('srindeciso_financas_incomes')); } catch(e){}
         }
         incomes.forEach(inc => {
+            let extractedDay = extractDay(inc.date);
             dataset.push({
-                date: inc.date || '01',
+                date: extractedDay,
                 month: inc.month || selectedMonth,
                 desc: inc.desc || inc.name || 'Entrada',
                 category: inc.category || 'Salário / Renda',
@@ -256,7 +275,7 @@ function updateAnalyticsView() {
         });
     }
 
-    // Filtro por Mês Referência global (exceto se houver um dia específico selecionado que busca na data real)
+    // Se NÃO houver dia específico selecionado, filtra pelo mês global
     if (!currentSelectedDay) {
         dataset = dataset.filter(item => item.month === selectedMonth);
     }
@@ -266,11 +285,10 @@ function updateAnalyticsView() {
         dataset = dataset.filter(item => item.category.toLowerCase().includes(categoryFilter.toLowerCase()));
     }
 
-    // Filtro estrito pelo dia real escolhido no calendário (independente de faturas)
+    // Filtro estrito pelo dia real escolhido no calendário
     if (currentSelectedDay && viewMode === 'daily') {
         dataset = dataset.filter(item => {
-            let itemDay = String(item.date).padStart(2, '0');
-            return itemDay === String(currentSelectedDay).padStart(2, '0');
+            return String(item.date).padStart(2, '0') === String(currentSelectedDay).padStart(2, '0');
         });
     }
 
@@ -292,7 +310,7 @@ function updateAnalyticsView() {
                 let tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-900/60 transition";
                 tr.innerHTML = `
-                    <td class="py-2.5 px-4 text-slate-400">${item.date} (${item.month})</td>
+                    <td class="py-2.5 px-4 text-slate-400">Dia ${item.date} (${item.month})</td>
                     <td class="py-2.5 px-4 font-medium text-white">${item.desc}</td>
                     <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-indigo-300 border border-slate-700">${item.category}</span></td>
                     <td class="py-2.5 px-4 text-slate-400">${item.card}</td>
