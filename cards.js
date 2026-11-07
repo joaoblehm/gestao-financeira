@@ -151,23 +151,20 @@ function deleteCard(id) {
 function getCardLimitStatus(cardName, currentMonth, cardLimit) {
     let totalCommitted = 0;
 
-    if (typeof expenses !== 'undefined') {
-        expenses.forEach(exp => {
-            if (exp.card === cardName) {
-                let projected = getProjectedItems();
-                let parcelasPendentesDestaCompra = projected.filter(item => 
-                    item.parentId === (exp.parentId || exp.id) && !item.paid
-                );
-
-                parcelasPendentesDestaCompra.forEach(p => {
-                    totalCommitted += Number(p.amount || 0);
-                });
+    if (typeof expenses !== 'undefined' && typeof getProjectedItems === 'function') {
+        let projected = getProjectedItems();
+        
+        // Soma todas as parcelas pendentes associadas a este cartão nas projeções
+        projected.forEach(item => {
+            if (item.card === cardName && !item.paid) {
+                totalCommitted += Number(item.amount || 0);
             }
         });
     }
 
     let limit = Number(cardLimit || 0);
-    let available = Math.max(0, limit - totalCommitted);
+    let available = limit - totalCommitted;
+    if (available < 0) available = 0;
 
     return {
         committed: totalCommitted,
