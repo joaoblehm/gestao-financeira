@@ -12,6 +12,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js para gráficos de Análise Avançada -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -52,6 +53,12 @@
                 <button onclick="switchTab('salary')" id="btnTabSalary"
                     class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition">
                     <i data-lucide="dollar-sign" class="w-4 h-4"></i> Salário & Renda
+                </button>
+
+                <!-- Botão: Análise Avançada (NOVO) -->
+                <button onclick="switchTab('analytics')" id="btnTabAnalytics"
+                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-400"></i> Análise Avançada
                 </button>
                 
                 <!-- Botão: Abrir Modal de Novo Lançamento -->
@@ -327,6 +334,11 @@
                     </table>
                 </div>
             </div>
+        </div>
+
+        <!-- ================= TAB 5: ANÁLISE AVANÇADA (NOVA ABA) ================= -->
+        <div id="tabAnalytics" class="hidden space-y-6">
+            <div id="analyticsContainer"></div>
         </div>
 
     </div>
