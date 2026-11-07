@@ -1,9 +1,9 @@
 // ============================================================================
-// MÓDULO DE ANÁLISE AVANÇADA E FLUXO - analytics.js (Responsivo Mobile)
+// MÓDULO DE ANÁLISE AVANÇADA E FLUXO - analytics.js (Filtro por Data Real)
 // ============================================================================
 
 window.analyticsChartInstance = null;
-let currentSelectedDay = ""; // Guarda o dia selecionado (ex: "05")
+let currentSelectedDay = ""; // Guarda o dia selecionado (ex: "07")
 
 function renderAnalytics() {
     const container = document.getElementById('analyticsContainer');
@@ -27,9 +27,9 @@ function renderAnalytics() {
                 </div>
             </div>
 
-            <!-- Controles de Filtros Avançados (Tipo, Categoria e Período Específico) -->
+            <!-- Controles de Filtros Avançados -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
-                <!-- Filtro Tipo (Despesas vs Entradas) -->
+                <!-- Filtro Tipo -->
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Tipo de Movimento</label>
                     <select id="anlyTypeFilter" onchange="updateAnalyticsView()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
@@ -52,7 +52,7 @@ function renderAnalytics() {
                     </select>
                 </div>
 
-                <!-- Seletor de Visão Gráfica / Período -->
+                <!-- Agrupamento Temporal -->
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Agrupamento Temporal</label>
                     <select id="anlyViewMode" onchange="toggleAnlySubFilters(); updateAnalyticsView();" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
@@ -62,18 +62,16 @@ function renderAnalytics() {
                     </select>
                 </div>
 
-                <!-- Sub-filtro para escolher Dia Específico com Calendário Responsivo Mobile -->
+                <!-- Sub-filtro de Dia Específico -->
                 <div id="anlySubFilterContainer" class="relative">
                     <label id="anlySubFilterLabel" class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Filtrar Dia Específico</label>
-                    
-                    <!-- Botão que aciona o Calendário de Dias -->
                     <button type="button" onclick="toggleDayPicker()" id="anlyDayPickerBtn"
                         class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500 flex items-center justify-between transition">
                         <span id="anlyDayPickerText">Todos os Dias do Mês</span>
                         <i data-lucide="calendar" class="w-4 h-4 text-slate-400 shrink-0"></i>
                     </button>
 
-                    <!-- Popover do Calendário de Dias (Responsivo para Mobile/Desktop) -->
+                    <!-- Popover do Calendário -->
                     <div id="dayPickerPopover" class="hidden absolute left-0 sm:left-auto right-0 sm:right-auto mt-2 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-2xl z-50 w-full sm:w-72 max-w-sm">
                         <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-800">
                             <span class="font-bold text-white text-xs uppercase tracking-wider">Selecione o Dia</span>
@@ -84,7 +82,7 @@ function renderAnalytics() {
                 </div>
             </div>
 
-            <!-- KPIs de Resumo Analítico -->
+            <!-- KPIs de Resumo -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
                     <div class="text-xs text-slate-400 font-medium">Soma Total do Período</div>
@@ -103,12 +101,12 @@ function renderAnalytics() {
                 </div>
             </div>
 
-            <!-- Gráfico Principal (Chart.js) -->
+            <!-- Gráfico Principal -->
             <div class="bg-slate-950 border border-slate-800 p-4 sm:p-5 rounded-xl relative h-72 sm:h-80">
                 <canvas id="analyticsChart"></canvas>
             </div>
 
-            <!-- Tabela Detalhada do Filtro Atual -->
+            <!-- Tabela Detalhada -->
             <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
                 <div class="px-4 sm:px-5 py-3 border-b border-slate-800 flex justify-between items-center">
                     <h3 class="font-bold text-white text-sm">Detalhamento dos Lançamentos no Filtro</h3>
@@ -198,7 +196,6 @@ function toggleAnlySubFilters() {
     }
 }
 
-// Fecha o popover se clicar fora
 document.addEventListener('click', (e) => {
     const popover = document.getElementById('dayPickerPopover');
     const btn = document.getElementById('anlyDayPickerBtn');
@@ -215,32 +212,41 @@ function updateAnalyticsView() {
 
     let dataset = [];
 
+    // Busca direta em todos os lançamentos brutos salvos (loadExpenses / storage) para respeitar a data real da compra
+    let rawExpenses = [];
+    if (typeof loadExpenses === 'function') {
+        rawExpenses = loadExpenses();
+    } else if (typeof expenses !== 'undefined') {
+        rawExpenses = expenses;
+    } else if (localStorage.getItem('srindeciso_financas_expenses')) {
+        try { rawExpenses = JSON.parse(localStorage.getItem('srindeciso_financas_expenses')); } catch(e){}
+    }
+
     if (typeFilter === 'expenses' || typeFilter === 'all') {
-        let projected = (typeof getProjectedItems === 'function') ? getProjectedItems() : [];
-        projected.forEach(item => {
-            if (item.month === selectedMonth) {
-                dataset.push({
-                    date: item.date || '01',
-                    desc: item.desc,
-                    category: item.category,
-                    card: item.card || 'Geral',
-                    amount: Number(item.amount) || 0,
-                    type: 'Despesa'
-                });
-            }
+        rawExpenses.forEach(item => {
+            dataset.push({
+                date: item.date || '01',
+                month: item.month || selectedMonth,
+                desc: item.desc,
+                category: item.category,
+                card: item.card || 'Geral',
+                amount: Number(item.amount) || 0,
+                type: 'Despesa'
+            });
         });
     }
 
     if (typeFilter === 'incomes' || typeFilter === 'all') {
         let incomes = [];
-        if (typeof getActiveIncomesForMonth === 'function') {
-            incomes = getActiveIncomesForMonth(selectedMonth);
-        } else if (typeof extraIncomes !== 'undefined') {
+        if (typeof extraIncomes !== 'undefined') {
             incomes = extraIncomes;
+        } else if (localStorage.getItem('srindeciso_financas_incomes')) {
+            try { incomes = JSON.parse(localStorage.getItem('srindeciso_financas_incomes')); } catch(e){}
         }
         incomes.forEach(inc => {
             dataset.push({
                 date: inc.date || '01',
+                month: inc.month || selectedMonth,
                 desc: inc.desc || inc.name || 'Entrada',
                 category: inc.category || 'Salário / Renda',
                 card: 'Conta / Caixa',
@@ -250,12 +256,22 @@ function updateAnalyticsView() {
         });
     }
 
+    // Filtro por Mês Referência global (exceto se houver um dia específico selecionado que busca na data real)
+    if (!currentSelectedDay) {
+        dataset = dataset.filter(item => item.month === selectedMonth);
+    }
+
+    // Aplica filtro de categoria
     if (categoryFilter) {
         dataset = dataset.filter(item => item.category.toLowerCase().includes(categoryFilter.toLowerCase()));
     }
 
+    // Filtro estrito pelo dia real escolhido no calendário (independente de faturas)
     if (currentSelectedDay && viewMode === 'daily') {
-        dataset = dataset.filter(item => String(item.date).padStart(2, '0') === String(currentSelectedDay).padStart(2, '0'));
+        dataset = dataset.filter(item => {
+            let itemDay = String(item.date).padStart(2, '0');
+            return itemDay === String(currentSelectedDay).padStart(2, '0');
+        });
     }
 
     let totalSum = dataset.reduce((acc, curr) => acc + curr.amount, 0);
@@ -270,13 +286,13 @@ function updateAnalyticsView() {
     if (tbody) {
         tbody.innerHTML = '';
         if (dataset.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 italic">Nenhum registro encontrado para este filtro.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 italic">Nenhum registro encontrado para o dia ${currentSelectedDay || 'selecionado'}.</td></tr>`;
         } else {
             dataset.forEach(item => {
                 let tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-900/60 transition";
                 tr.innerHTML = `
-                    <td class="py-2.5 px-4 text-slate-400">${item.date} / ${selectedMonth.split('/')[0]}</td>
+                    <td class="py-2.5 px-4 text-slate-400">${item.date} (${item.month})</td>
                     <td class="py-2.5 px-4 font-medium text-white">${item.desc}</td>
                     <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-indigo-300 border border-slate-700">${item.category}</span></td>
                     <td class="py-2.5 px-4 text-slate-400">${item.card}</td>
