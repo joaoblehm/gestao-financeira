@@ -1,8 +1,9 @@
 // ============================================================================
-// MÓDULO DE ANÁLISE AVANÇADA E FLUXO - analytics.js (Completo & Interativo)
+// MÓDULO DE ANÁLISE AVANÇADA E FLUXO - analytics.js (Responsivo Mobile)
 // ============================================================================
 
 window.analyticsChartInstance = null;
+let currentSelectedDay = ""; // Guarda o dia selecionado (ex: "05")
 
 function renderAnalytics() {
     const container = document.getElementById('analyticsContainer');
@@ -11,16 +12,16 @@ function renderAnalytics() {
     const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
 
     container.innerHTML = `
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-6">
             <!-- Cabeçalho da Seção -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-5">
                 <div>
-                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                         <i data-lucide="bar-chart-3" class="text-indigo-400"></i> Análise Avançada e Fluxo Temporal
                     </h2>
                     <p class="text-xs text-slate-400 mt-1">Visão completa por período, somas dinâmicas e comparação de despesas e entradas.</p>
                 </div>
-                <div class="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700/60">
+                <div class="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700/60 w-full sm:w-auto justify-between sm:justify-start">
                     <span class="text-xs font-semibold text-slate-300">Mês Ativo:</span>
                     <span class="text-xs font-bold text-indigo-400">${selectedMonth}</span>
                 </div>
@@ -31,7 +32,7 @@ function renderAnalytics() {
                 <!-- Filtro Tipo (Despesas vs Entradas) -->
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Tipo de Movimento</label>
-                    <select id="anlyTypeFilter" onchange="updateAnalyticsView()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 outline-none focus:border-indigo-500">
+                    <select id="anlyTypeFilter" onchange="updateAnalyticsView()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                         <option value="expenses">Despesas / Gastos</option>
                         <option value="incomes">Entradas (Salário & Renda)</option>
                         <option value="all">Visão Consolidada (Geral)</option>
@@ -41,7 +42,7 @@ function renderAnalytics() {
                 <!-- Filtro de Categoria -->
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Categoria</label>
-                    <select id="anlyCategoryFilter" onchange="updateAnalyticsView()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 outline-none focus:border-indigo-500">
+                    <select id="anlyCategoryFilter" onchange="updateAnalyticsView()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                         <option value="">Todas as Categorias</option>
                         <option value="Cartão de Crédito">Cartão de Crédito</option>
                         <option value="Mercado">Mercado</option>
@@ -54,19 +55,32 @@ function renderAnalytics() {
                 <!-- Seletor de Visão Gráfica / Período -->
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Agrupamento Temporal</label>
-                    <select id="anlyViewMode" onchange="toggleAnlySubFilters(); updateAnalyticsView();" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 outline-none focus:border-indigo-500">
+                    <select id="anlyViewMode" onchange="toggleAnlySubFilters(); updateAnalyticsView();" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                         <option value="daily">Diário (Dia a Dia)</option>
                         <option value="weekly">Semanal (Por Semana)</option>
                         <option value="monthly">Mensal (Visão do Mês)</option>
                     </select>
                 </div>
 
-                <!-- Sub-filtro para escolher Dia Específico ou Semana Específica -->
-                <div id="anlySubFilterContainer">
+                <!-- Sub-filtro para escolher Dia Específico com Calendário Responsivo Mobile -->
+                <div id="anlySubFilterContainer" class="relative">
                     <label id="anlySubFilterLabel" class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Filtrar Dia Específico</label>
-                    <select id="anlySpecificDay" onchange="updateAnalyticsView()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 outline-none focus:border-indigo-500">
-                        <option value="">Todos os Dias do Mês</option>
-                    </select>
+                    
+                    <!-- Botão que aciona o Calendário de Dias -->
+                    <button type="button" onclick="toggleDayPicker()" id="anlyDayPickerBtn"
+                        class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500 flex items-center justify-between transition">
+                        <span id="anlyDayPickerText">Todos os Dias do Mês</span>
+                        <i data-lucide="calendar" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                    </button>
+
+                    <!-- Popover do Calendário de Dias (Responsivo para Mobile/Desktop) -->
+                    <div id="dayPickerPopover" class="hidden absolute left-0 sm:left-auto right-0 sm:right-auto mt-2 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-2xl z-50 w-full sm:w-72 max-w-sm">
+                        <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-800">
+                            <span class="font-bold text-white text-xs uppercase tracking-wider">Selecione o Dia</span>
+                            <button type="button" onclick="clearDayFilter()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold transition">Ver Todos</button>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1.5" id="pickerDaysGrid"></div>
+                    </div>
                 </div>
             </div>
 
@@ -74,12 +88,12 @@ function renderAnalytics() {
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
                     <div class="text-xs text-slate-400 font-medium">Soma Total do Período</div>
-                    <div class="text-2xl font-bold text-white mt-1" id="anlyKpiTotal">R$ 0,00</div>
-                    <div class="text-[11px] text-indigo-400 mt-0.5" id="anlyKpiSub">Filtro aplicado com sucesso</div>
+                    <div class="text-2xl font-bold text-white mt-1 truncate" id="anlyKpiTotal">R$ 0,00</div>
+                    <div class="text-[11px] text-indigo-400 mt-0.5">Filtro aplicado com sucesso</div>
                 </div>
                 <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
                     <div class="text-xs text-slate-400 font-medium">Média por Lançamento / Dia</div>
-                    <div class="text-2xl font-bold text-indigo-400 mt-1" id="anlyKpiAverage">R$ 0,00</div>
+                    <div class="text-2xl font-bold text-indigo-400 mt-1 truncate" id="anlyKpiAverage">R$ 0,00</div>
                     <div class="text-[11px] text-slate-500 mt-0.5">Média estatística</div>
                 </div>
                 <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
@@ -90,18 +104,18 @@ function renderAnalytics() {
             </div>
 
             <!-- Gráfico Principal (Chart.js) -->
-            <div class="bg-slate-950 border border-slate-800 p-5 rounded-xl relative h-80">
+            <div class="bg-slate-950 border border-slate-800 p-4 sm:p-5 rounded-xl relative h-72 sm:h-80">
                 <canvas id="analyticsChart"></canvas>
             </div>
 
             <!-- Tabela Detalhada do Filtro Atual -->
             <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
-                <div class="px-5 py-3 border-b border-slate-800 flex justify-between items-center">
+                <div class="px-4 sm:px-5 py-3 border-b border-slate-800 flex justify-between items-center">
                     <h3 class="font-bold text-white text-sm">Detalhamento dos Lançamentos no Filtro</h3>
                     <span id="anlyTableCount" class="text-xs text-slate-400">0 itens</span>
                 </div>
                 <div class="overflow-x-auto max-h-72 overflow-y-auto">
-                    <table class="w-full text-left border-collapse text-xs">
+                    <table class="w-full text-left border-collapse text-xs min-w-[550px]">
                         <thead>
                             <tr class="bg-slate-900 text-slate-400 uppercase tracking-wider border-b border-slate-800 sticky top-0">
                                 <th class="py-2.5 px-4 font-semibold">Data / Mês</th>
@@ -118,62 +132,89 @@ function renderAnalytics() {
         </div>
     `;
 
-    populateAnlyDayOptions(selectedMonth);
+    renderPickerDays();
     updateAnalyticsView();
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-function toggleAnlySubFilters() {
-    let mode = document.getElementById('anlyViewMode')?.value;
-    let label = document.getElementById('anlySubFilterLabel');
-    let select = document.getElementById('anlySpecificDay');
-    const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : 'Novembro/2026';
-
-    if (!label || !select) return;
-
-    if (mode === 'daily') {
-        label.innerText = "Filtrar Dia Específico";
-        populateAnlyDayOptions(selectedMonth);
-    } else if (mode === 'weekly') {
-        label.innerText = "Filtrar Semana Específica";
-        select.innerHTML = `
-            <option value="">Todas as Semanas</option>
-            <option value="Semana 1">Semana 1 (Dias 1 a 7)</option>
-            <option value="Semana 2">Semana 2 (Dias 8 a 14)</option>
-            <option value="Semana 3">Semana 3 (Dias 15 a 21)</option>
-            <option value="Semana 4">Semana 4 (Dias 22 a 31)</option>
-        `;
-    } else {
-        label.innerText = "Visão Mensal";
-        select.innerHTML = `<option value="">Todo o Mês</option>`;
+function toggleDayPicker() {
+    const popover = document.getElementById('dayPickerPopover');
+    if (popover) {
+        popover.classList.toggle('hidden');
     }
 }
 
-function populateAnlyDayOptions(selectedMonth) {
-    let select = document.getElementById('anlySpecificDay');
-    if (!select) return;
-    
-    // Mantém a primeira opção
-    select.innerHTML = `<option value="">Todos os Dias do Mês</option>`;
+function renderPickerDays() {
+    const grid = document.getElementById('pickerDaysGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
     for (let d = 1; d <= 31; d++) {
         let dayStr = d < 10 ? `0${d}` : `${d}`;
-        let opt = document.createElement('option');
-        opt.value = dayStr;
-        opt.innerText = `Dia ${dayStr} do Mês`;
-        select.appendChild(opt);
+        let isSelected = currentSelectedDay === dayStr;
+
+        let btn = document.createElement('button');
+        btn.type = 'button';
+        btn.innerText = dayStr;
+        btn.className = `py-2.5 rounded-lg text-xs font-semibold transition ${
+            isSelected 
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' 
+                : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white'
+        }`;
+
+        btn.onclick = () => {
+            currentSelectedDay = dayStr;
+            document.getElementById('anlyDayPickerText').innerText = `Dia ${dayStr} Selecionado`;
+            document.getElementById('dayPickerPopover').classList.add('hidden');
+            renderPickerDays();
+            updateAnalyticsView();
+        };
+        grid.appendChild(btn);
     }
 }
+
+function clearDayFilter() {
+    currentSelectedDay = "";
+    document.getElementById('anlyDayPickerText').innerText = "Todos os Dias do Mês";
+    document.getElementById('dayPickerPopover').classList.add('hidden');
+    renderPickerDays();
+    updateAnalyticsView();
+}
+
+function toggleAnlySubFilters() {
+    let mode = document.getElementById('anlyViewMode')?.value;
+    let container = document.getElementById('anlySubFilterContainer');
+    if (!container) return;
+
+    if (mode === 'daily') {
+        container.style.display = 'block';
+    } else if (mode === 'weekly') {
+        container.style.display = 'block';
+        document.getElementById('anlyDayPickerText').innerText = "Todas as Semanas";
+        currentSelectedDay = "";
+    } else {
+        container.style.display = 'none';
+        currentSelectedDay = "";
+    }
+}
+
+// Fecha o popover se clicar fora
+document.addEventListener('click', (e) => {
+    const popover = document.getElementById('dayPickerPopover');
+    const btn = document.getElementById('anlyDayPickerBtn');
+    if (popover && btn && !popover.contains(e.target) && !btn.contains(e.target)) {
+        popover.classList.add('hidden');
+    }
+});
 
 function updateAnalyticsView() {
     const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : 'Novembro/2026';
     const typeFilter = document.getElementById('anlyTypeFilter')?.value || 'expenses';
     const categoryFilter = document.getElementById('anlyCategoryFilter')?.value || '';
     const viewMode = document.getElementById('anlyViewMode')?.value || 'daily';
-    const specificVal = document.getElementById('anlySpecificDay')?.value || '';
 
     let dataset = [];
 
-    // Coleta dados conforme o tipo selecionado
     if (typeFilter === 'expenses' || typeFilter === 'all') {
         let projected = (typeof getProjectedItems === 'function') ? getProjectedItems() : [];
         projected.forEach(item => {
@@ -209,26 +250,14 @@ function updateAnalyticsView() {
         });
     }
 
-    // Aplica filtro de categoria (se selecionado)
     if (categoryFilter) {
         dataset = dataset.filter(item => item.category.toLowerCase().includes(categoryFilter.toLowerCase()));
     }
 
-    // Aplica filtro de dia específico ou semana específica
-    if (specificVal) {
-        if (viewMode === 'daily') {
-            dataset = dataset.filter(item => String(item.date).padStart(2, '0') === String(specificVal).padStart(2, '0'));
-        } else if (viewMode === 'weekly') {
-            let dayNum = parseInt(item.date) || 1;
-            let weekGroup = 'Semana 4';
-            if (dayNum <= 7) weekGroup = 'Semana 1';
-            else if (dayNum <= 14) weekGroup = 'Semana 2';
-            else if (dayNum <= 21) weekGroup = 'Semana 3';
-            dataset = dataset.filter(() => weekGroup === specificVal);
-        }
+    if (currentSelectedDay && viewMode === 'daily') {
+        dataset = dataset.filter(item => String(item.date).padStart(2, '0') === String(currentSelectedDay).padStart(2, '0'));
     }
 
-    // Cálculos de KPIs
     let totalSum = dataset.reduce((acc, curr) => acc + curr.amount, 0);
     let avg = dataset.length > 0 ? totalSum / dataset.length : 0;
 
@@ -236,7 +265,6 @@ function updateAnalyticsView() {
     document.getElementById('anlyKpiAverage').innerText = `R$ ${avg.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
     document.getElementById('anlyKpiCount').innerText = `${dataset.length} itens`;
 
-    // Preenche tabela detalhada
     let tbody = document.getElementById('anlyTableBody');
     let countEl = document.getElementById('anlyTableCount');
     if (tbody) {
@@ -260,7 +288,6 @@ function updateAnalyticsView() {
         if (countEl) countEl.innerText = `${dataset.length} itens`;
     }
 
-    // Renderiza Gráfico Chart.js
     renderAnalyticsChart(dataset, viewMode);
 }
 
@@ -339,7 +366,7 @@ function renderAnalyticsChart(dataset, viewMode) {
             scales: {
                 x: {
                     grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                    ticks: { color: '#94a3b8', font: { size: 10 } }
+                    ticks: { color: '#94a3b8', font: { size: 10 }, maxRotation: 45 }
                 },
                 y: {
                     grid: { color: 'rgba(255, 255, 255, 0.05)' },
@@ -360,3 +387,5 @@ function renderAnalyticsChart(dataset, viewMode) {
 window.renderAnalytics = renderAnalytics;
 window.updateAnalyticsView = updateAnalyticsView;
 window.toggleAnlySubFilters = toggleAnlySubFilters;
+window.toggleDayPicker = toggleDayPicker;
+window.clearDayFilter = clearDayFilter;
