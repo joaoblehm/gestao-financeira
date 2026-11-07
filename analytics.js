@@ -1,5 +1,5 @@
 // ============================================================================
-// MÓDULO DE ANÁLISE AVANÇADA E FLUXO - analytics.js (Filtro de Data Robusto)
+// MÓDULO DE ANÁLISE AVANÇADA E FLUXO - analytics.js (Filtro Direto e Preciso)
 // ============================================================================
 
 window.analyticsChartInstance = null;
@@ -204,22 +204,20 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Função auxiliar robusta para extrair o dia com segurança de qualquer formato (YYYY-MM-DD, DD/MM, etc.)
-function extractDay(dateStr) {
-    if (!dateStr) return '01';
-    let s = String(dateStr).trim();
-    // Se estiver no formato ISO "2026-11-07"
-    if (s.includes('-')) {
-        let parts = s.split('-');
-        if (parts.length >= 3) return parts[2].padStart(2, '0');
+// Função ultra-robusta para capturar o dia exato do lançamento (seja "07", "7", "2026-11-07" ou "07/11")
+function getDayNumber(item) {
+    // Tenta pegar de item.date ou de qualquer outra propriedade de dia
+    let raw = item.date || item.day || '01';
+    let str = String(raw).trim();
+    if (str.includes('-')) {
+        let parts = str.split('-');
+        return parts[parts.length - 1].padStart(2, '0');
     }
-    // Se estiver no formato "07/11/2026" ou "07/11"
-    if (s.includes('/')) {
-        let parts = s.split('/');
+    if (str.includes('/')) {
+        let parts = str.split('/');
         return parts[0].padStart(2, '0');
     }
-    // Se for só o número "7" ou "07"
-    return s.padStart(2, '0');
+    return str.padStart(2, '0');
 }
 
 function updateAnalyticsView() {
@@ -230,42 +228,44 @@ function updateAnalyticsView() {
 
     let dataset = [];
 
-    let rawExpenses = [];
-    if (typeof loadExpenses === 'function') {
-        rawExpenses = loadExpenses();
+    // Pega direto os itens projetados do mês ativo na aplicação principal
+    let projected = [];
+    if (typeof getProjectedItems === 'function') {
+        projected = getProjectedItems();
     } else if (typeof expenses !== 'undefined') {
-        rawExpenses = expenses;
-    } else if (localStorage.getItem('srindeciso_financas_expenses')) {
-        try { rawExpenses = JSON.parse(localStorage.getItem('srindeciso_financas_expenses')); } catch(e){}
+        projected = expenses;
     }
 
     if (typeFilter === 'expenses' || typeFilter === 'all') {
-        rawExpenses.forEach(item => {
-            let extractedDay = extractDay(item.date);
-            dataset.push({
-                date: extractedDay,
-                month: item.month || selectedMonth,
-                desc: item.desc,
-                category: item.category,
-                card: item.card || 'Geral',
-                amount: Number(item.amount) || 0,
-                type: 'Despesa'
-            });
+        projected.forEach(item => {
+            // Garante que pertence ao mês selecionado
+            if (item.month === selectedMonth) {
+                let dNum = getDayNumber(item);
+                dataset.push({
+                    day: dNum,
+                    month: item.month,
+                    desc: item.desc,
+                    category: item.category,
+                    card: item.card || 'Geral',
+                    amount: Number(item.amount) || 0,
+                    type: 'Despesa'
+                });
+            }
         });
     }
 
     if (typeFilter === 'incomes' || typeFilter === 'all') {
         let incomes = [];
-        if (typeof extraIncomes !== 'undefined') {
+        if (typeof getActiveIncomesForMonth === 'function') {
+            incomes = getActiveIncomesForMonth(selectedMonth);
+        } else if (typeof extraIncomes !== 'undefined') {
             incomes = extraIncomes;
-        } else if (localStorage.getItem('srindeciso_financas_incomes')) {
-            try { incomes = JSON.parse(localStorage.getItem('srindeciso_financas_incomes')); } catch(e){}
         }
         incomes.forEach(inc => {
-            let extractedDay = extractDay(inc.date);
+            let dNum = getDayNumber(inc);
             dataset.push({
-                date: extractedDay,
-                month: inc.month || selectedMonth,
+                day: dNum,
+                month: selectedMonth,
                 desc: inc.desc || inc.name || 'Entrada',
                 category: inc.category || 'Salário / Renda',
                 card: 'Conta / Caixa',
@@ -275,21 +275,14 @@ function updateAnalyticsView() {
         });
     }
 
-    // Se NÃO houver dia específico selecionado, filtra pelo mês global
-    if (!currentSelectedDay) {
-        dataset = dataset.filter(item => item.month === selectedMonth);
-    }
-
-    // Aplica filtro de categoria
+    // Filtra por Categoria se houver
     if (categoryFilter) {
         dataset = dataset.filter(item => item.category.toLowerCase().includes(categoryFilter.toLowerCase()));
     }
 
-    // Filtro estrito pelo dia real escolhido no calendário
+    // Se o usuário selecionou um dia específico no calendário, filtra estritamente por ele
     if (currentSelectedDay && viewMode === 'daily') {
-        dataset = dataset.filter(item => {
-            return String(item.date).padStart(2, '0') === String(currentSelectedDay).padStart(2, '0');
-        });
+        dataset = dataset.filter(item => String(item.day) === String(currentSelectedDay));
     }
 
     let totalSum = dataset.reduce((acc, curr) => acc + curr.amount, 0);
@@ -304,13 +297,13 @@ function updateAnalyticsView() {
     if (tbody) {
         tbody.innerHTML = '';
         if (dataset.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 italic">Nenhum registro encontrado para o dia ${currentSelectedDay || 'selecionado'}.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500 italic">Nenhum registro encontrado ${currentSelectedDay ? 'para o dia ' + currentSelectedDay : ''}.</td></tr>`;
         } else {
             dataset.forEach(item => {
                 let tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-900/60 transition";
                 tr.innerHTML = `
-                    <td class="py-2.5 px-4 text-slate-400">Dia ${item.date} (${item.month})</td>
+                    <td class="py-2.5 px-4 text-slate-400">Dia ${item.day} / ${item.month}</td>
                     <td class="py-2.5 px-4 font-medium text-white">${item.desc}</td>
                     <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-indigo-300 border border-slate-700">${item.category}</span></td>
                     <td class="py-2.5 px-4 text-slate-400">${item.card}</td>
@@ -339,7 +332,7 @@ function renderAnalyticsChart(dataset, viewMode) {
             grouped[dKey] = 0;
         }
         dataset.forEach(item => {
-            let dayKey = String(item.date).padStart(2, '0');
+            let dayKey = String(item.day).padStart(2, '0');
             if (grouped[dayKey] !== undefined) {
                 grouped[dayKey] += item.amount;
             } else {
@@ -351,7 +344,7 @@ function renderAnalyticsChart(dataset, viewMode) {
     } else if (viewMode === 'weekly') {
         let weeks = { 'Semana 1 (1-7)': 0, 'Semana 2 (8-14)': 0, 'Semana 3 (15-21)': 0, 'Semana 4 (22+)': 0 };
         dataset.forEach(item => {
-            let dNum = parseInt(item.date) || 1;
+            let dNum = parseInt(item.day) || 1;
             if (dNum <= 7) weeks['Semana 1 (1-7)'] += item.amount;
             else if (dNum <= 14) weeks['Semana 2 (8-14)'] += item.amount;
             else if (dNum <= 21) weeks['Semana 3 (15-21)'] += item.amount;
