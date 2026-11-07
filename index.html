@@ -121,6 +121,7 @@
                         <option value="Mercado">Mercado</option>
                         <option value="Contas de Casa">Contas de Casa</option>
                         <option value="Assinaturas">Assinaturas</option>
+                        <option value="Outros">Outros</option>
                     </select>
                 </div>
             </div>
@@ -205,6 +206,9 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Contentor de Paginação (Anterior / Próxima) -->
+            <div id="paginationContainer" class="w-full"></div>
         </div>
 
         <!-- ================= TAB 2: CARTÕES & FATURAS DETALHADAS ================= -->
@@ -243,6 +247,7 @@
                                 <th class="py-3 px-4 font-semibold">Mês</th>
                                 <th class="py-3 px-4 font-semibold">Data</th>
                                 <th class="py-3 px-4 font-semibold">Descrição</th>
+                                <th class="py-3 px-4 font-semibold">Categoria</th>
                                 <th class="py-3 px-4 font-semibold text-right">Valor</th>
                                 <th class="py-3 px-4 font-semibold text-center">Status</th>
                                 <th class="py-3 px-4 font-semibold text-center">Ações</th>
@@ -257,7 +262,7 @@
         <!-- ================= TAB 4: SALÁRIO & RENDA ================= -->
         <div id="tabSalary" class="hidden space-y-6">
             
-            <!-- Cabeçalho Limpo (Apenas o título à esquerda e o botão Cadastrar à direita) -->
+            <!-- Cabeçalho Limpo -->
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
                 <div class="flex items-center gap-3">
                     <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
@@ -294,7 +299,7 @@
                 </div>
             </div>
 
-            <!-- Lista de Entradas com Cabeçalho de 6 Colunas Exatas -->
+            <!-- Lista de Entradas -->
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
                 <div class="flex justify-between items-center pb-3 border-b border-slate-800">
                     <h3 class="font-bold text-white text-base flex items-center gap-2">
@@ -321,7 +326,6 @@
                     </table>
                 </div>
             </div>
-
         </div>
 
     </div>
@@ -336,32 +340,28 @@
             </div>
             <form id="cardForm" onsubmit="saveCard(event)" class="space-y-4">
                 <input type="hidden" id="cardId">
-                <!-- Nome do Cartão -->
                 <div>
                     <label class="block text-xs font-medium text-slate-400 mb-1">Nome do Cartão / Banco</label>
-                    <input type="text" id="cardName" required placeholder="Ex: Nubank João, Bradesco Amazon..."
+                    <input type="text" id="cardName" required placeholder="Ex: Nubank João, Nubank (Brenda)..."
                         class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                 </div>
-                <!-- Dias de Fechamento e Vencimento -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1">Dia de Fechamento</label>
-                        <input type="number" id="cardClosingDay" min="1" max="31" required placeholder="Ex: 25"
+                        <input type="number" id="cardClosingDay" min="1" max="31" required placeholder="Ex: 02"
                             class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1">Dia de Vencimento</label>
-                        <input type="number" id="cardDueDate" min="1" max="31" required placeholder="Ex: 05"
+                        <input type="number" id="cardDueDate" min="1" max="31" required placeholder="Ex: 09"
                             class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                     </div>
                 </div>
-                <!-- Limite do Cartão -->
                 <div>
                     <label class="block text-xs font-medium text-slate-400 mb-1">Limite do Cartão (R$)</label>
                     <input type="number" step="0.01" id="cardLimit" required placeholder="Ex: 5000.00"
                         class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                 </div>
-                <!-- Ações do Modal de Cartão -->
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
                     <button type="button" onclick="closeCardModal()"
                         class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition">Cancelar</button>
@@ -429,7 +429,6 @@
                     document.getElementById('globalMonthText').innerText = fullMonthName;
                     document.getElementById('monthPickerPopover').classList.add('hidden');
                     
-                    // Compatibilidade com a função global do sistema que lê o mês selecionado
                     let hiddenSelect = document.getElementById('globalMonth');
                     if (hiddenSelect) {
                         hiddenSelect.value = fullMonthName;
@@ -441,12 +440,10 @@
             });
         }
 
-        // Função de utilidade para obter o mês selecionado nos outros scripts do sistema
         function getSelectedMonth() {
             return currentSelectedMonthStr;
         }
 
-        // Fecha o popover se clicar fora
         document.addEventListener('click', (e) => {
             const popover = document.getElementById('monthPickerPopover');
             const btn = document.getElementById('globalMonthBtn');
@@ -455,10 +452,8 @@
             }
         });
 
-        // Inicializa a grelha ao carregar
         document.addEventListener('DOMContentLoaded', () => {
             renderPickerMonths();
-            // Cria um input/select oculto caso algum script dependa do elemento 'globalMonth' original
             let headerBar = document.querySelector('#globalMonthBtn').parentNode;
             if (!document.getElementById('globalMonth')) {
                 let hiddenSel = document.createElement('select');
