@@ -84,18 +84,29 @@ function renderPaginationControls(totalItems, containerId) {
     let container = document.getElementById(containerId);
     
     if (!container) return;
+    
     if (totalPages <= 1) {
         container.innerHTML = '';
         return;
     }
 
     container.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; margin-top: 10px; width: 100%;">
-            <button onclick="changePage(-1)" ${window.currentPage === 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} class="btn">Anterior</button>
-            <span style="font-size: 0.85rem; color: #94a3b8;">Página ${window.currentPage} de ${totalPages} (${totalItems} itens)</span>
-            <button onclick="changePage(1)" ${window.currentPage >= totalPages ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} class="btn">Próxima</button>
+        <div class="flex justify-between items-center bg-[#0b132b] border border-slate-800 px-4 py-3 rounded-xl shadow-lg mt-4 w-full box-border">
+            <button onclick="changePage(-1)" ${window.currentPage === 1 ? 'disabled class="opacity-50 cursor-not-allowed bg-slate-800 text-slate-500 border-slate-700"' : 'class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"'} class="px-4 py-2 rounded-lg font-semibold text-xs flex items-center gap-2 transition">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+            </button>
+            <span class="text-xs font-medium text-slate-400">
+                Página <strong class="text-white">${window.currentPage}</strong> de <strong class="text-white">${totalPages}</strong> <span class="text-slate-500">(${totalItems} itens)</span>
+            </span>
+            <button onclick="changePage(1)" ${window.currentPage >= totalPages ? 'disabled class="opacity-50 cursor-not-allowed bg-slate-800 text-slate-500 border-slate-700"' : 'class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"'} class="px-4 py-2 rounded-lg font-semibold text-xs flex items-center gap-2 transition">
+                Próxima <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
         </div>
     `;
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 }
 
 function changePage(direction) {
