@@ -154,7 +154,6 @@ function getCardLimitStatus(cardName, currentMonth, cardLimit) {
     if (typeof expenses !== 'undefined' && typeof getProjectedItems === 'function') {
         let projected = getProjectedItems();
         
-        // Soma todas as parcelas pendentes associadas a este cartão nas projeções
         projected.forEach(item => {
             if (item.card === cardName && !item.paid) {
                 totalCommitted += Number(item.amount || 0);
@@ -173,8 +172,8 @@ function getCardLimitStatus(cardName, currentMonth, cardLimit) {
 }
 
 /**
- * Renderiza os cards de crédito na aba "Cartões & Faturas" com a listagem completa dos lançamentos,
- * alertas de fechamento/vencimento, botão de quitação e limite disponível.
+ * Renderiza os cards de crédito na aba "Cartões & Faturas" com suporte a ciclos 
+ * que fecham no fim do mês e vencem no início do mês seguinte.
  */
 function renderCards() {
     let grid = document.getElementById('cardsGrid');
@@ -198,8 +197,26 @@ function renderCards() {
         window.cardPaidMonths = JSON.parse(localStorage.getItem('srin_card_paid_months')) || {};
     }
 
+    const mesesMap = {
+        'Janeiro': 0, 'Fevereiro': 1, 'Março': 2, 'Abril': 3, 'Maio': 4, 'Junho': 5,
+        'Julho': 6, 'Agosto': 7, 'Setembro': 8, 'Outubro': 9, 'Novembro': 10, 'Dezembro': 11
+    };
+
     const hoje = new Date();
-    const diaAtual = hoje.getDate();
+    const anoAtualReal = hoje.getFullYear();
+    const mesAtualReal = hoje.getMonth();
+    const diaAtualReal = hoje.getDate();
+
+    let [nomeMesSel, anoSelStr] = selectedMonth.split('/');
+    let mesSelIndex = mesesMap[nomeMesSel?.trim()] !== undefined ? mesesMap[nomeMesSel.trim()] : mesAtualReal;
+    let anoSel = parseInt(anoSelStr) || anoAtualReal;
+
+    let selDateObj = new Date(anoSel, mesSelIndex, 1);
+    let realDateObj = new Date(anoAtualReal, mesAtualReal, 1);
+
+    let isFutureMonth = selDateObj > realDateObj;
+    let isPastMonth = selDateObj < realDateObj;
+    let isCurrentMonth = selDateObj.getTime() === realDateObj.getTime();
 
     cards.forEach(card => {
         let monthlyCardItems = projectedItems.filter(i => i.card === card.name && i.month === selectedMonth);
@@ -207,26 +224,46 @@ function renderCards() {
         let closingDay = Number(card.closingDay) || 1;
         let dueDay = Number(card.dueDay) || 1;
 
-        let isClosingToday = (diaAtual === closingDay);
-        let isDueTodayOrPassed = (diaAtual >= dueDay);
-
         if (!cardPaidMonths[card.name]) cardPaidMonths[card.name] = {};
         let isCardQuitado = !!cardPaidMonths[card.name][selectedMonth];
 
         let cardClasses = "bg-slate-900 border rounded-xl p-5 flex flex-col justify-between shadow-sm transition relative overflow-hidden";
         let badgeHtml = '';
 
+        // Validação estrita por mês considerando fechamento no fim e vencimento no início
         if (isCardQuitado) {
             cardClasses += " border-emerald-500/80 shadow-emerald-950/40 shadow-lg";
             badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 w-fit"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> FATURA QUITADA (${selectedMonth})</span>`;
-        } else if (isDueTodayOrPassed) {
-            cardClasses += " border-rose-500 shadow-rose-950/50 shadow-lg";
-            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse">⚠️ VENCIDO / VENCE HOJE (Dia ${dueDay})</span>`;
-        } else if (isClosingToday) {
-            cardClasses += " border-amber-500 shadow-amber-950/50 shadow-lg animate-pulse";
-            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">🔔 FECHA HOJE (Dia ${closingDay})</span>`;
-        } else {
+        } else if (isFutureMonth) {
             cardClasses += " border-slate-800";
+            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">📅 Fatura Futura / Aberta</span>`;
+        } else if (isPastMonth) {
+            cardClasses += " border-rose-500/80 shadow-rose-950/40 shadow-lg";
+            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">⚠️ PENDENTE (Mês Anterior)</span>`;
+        } else {
+            // Mês atual real: avalia se está no período de fechamento até o vencimento (mesmo virando o mês)
+            let isVencidoOuHoje = (diaAtualReal >= dueDay);
+            
+            // Se o fechamento é no fim do mês (ex: 30) e vencimento no início (ex: 5)
+            let isFechado = false;
+            if (closingDay > dueDay) {
+                // Ex: fecha dia 30 e vence dia 5 do mês seguinte.
+                // Está fechado a partir do dia do fechamento até o final do mês, OU do dia 1 até o vencimento.
+                isFechado = (diaAtualReal >= closingDay || diaAtualReal < dueDay);
+            } else {
+                isFechado = (diaAtualReal >= closingDay && diaAtualReal < dueDay);
+            }
+
+            if (isVencidoOuHoje) {
+                cardClasses += " border-rose-500 shadow-rose-950/50 shadow-lg animate-pulse";
+                badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse">⚠️ VENCIDO / VENCE HOJE (Dia ${dueDay})</span>`;
+            } else if (isFechado) {
+                cardClasses += " border-amber-500 shadow-amber-950/50 shadow-lg";
+                badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">🔔 FATURA FECHADA (Vence dia ${dueDay})</span>`;
+            } else {
+                cardClasses += " border-slate-800";
+                badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700">🛒 Fatura Aberta</span>`;
+            }
         }
 
         let cardDiv = document.createElement('div');
