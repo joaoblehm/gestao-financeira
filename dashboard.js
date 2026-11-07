@@ -1,5 +1,5 @@
 // ============================================================================
-// DASHBOARD & RENDERIZAÇÃO - dashboard.js (Atualizado com Contas de Casa e Outros)
+// DASHBOARD & RENDERIZAÇÃO - dashboard.js (Atualizado com Contas de Casa, Outros e Ciclos Corrigidos)
 // ============================================================================
 
 /**
@@ -207,10 +207,7 @@ function renderDashboard() {
 }
 
 /**
- * Renderiza a aba de Cartões & Faturas:
- * - Lista todos os cartões cadastrados em formato de grid.
- * - Calcula o total da fatura de cada cartão para o mês selecionado.
- * - Calcula o Limite Disponível em tempo real.
+ * Renderiza a aba de Cartões & Faturas com validação rigorosa de ciclos (fechamento/vencimento) por mês.
  */
 function renderCardsView() {
     const grid = document.getElementById('cardsGrid');
@@ -229,17 +226,32 @@ function renderCardsView() {
         window.cardPaidMonths = JSON.parse(localStorage.getItem('srin_card_paid_months')) || {};
     }
 
+    const mesesMap = {
+        'Janeiro': 0, 'Fevereiro': 1, 'Março': 2, 'Abril': 3, 'Maio': 4, 'Junho': 5,
+        'Julho': 6, 'Agosto': 7, 'Setembro': 8, 'Outubro': 9, 'Novembro': 10, 'Dezembro': 11
+    };
+
     const hoje = new Date();
-    const diaAtual = hoje.getDate();
+    const anoAtualReal = hoje.getFullYear();
+    const mesAtualReal = hoje.getMonth();
+    const diaAtualReal = hoje.getDate();
+
+    let [nomeMesSel, anoSelStr] = selectedMonth.split('/');
+    let mesSelIndex = mesesMap[nomeMesSel?.trim()] !== undefined ? mesesMap[nomeMesSel.trim()] : mesAtualReal;
+    let anoSel = parseInt(anoSelStr) || anoAtualReal;
+
+    let selDateObj = new Date(anoSel, mesSelIndex, 1);
+    let realDateObj = new Date(anoAtualReal, mesAtualReal, 1);
+
+    let isFutureMonth = selDateObj > realDateObj;
+    let isPastMonth = selDateObj < realDateObj;
+    let isCurrentMonth = selDateObj.getTime() === realDateObj.getTime();
 
     cards.forEach(card => {
         let monthlyCardItems = projectedItems.filter(i => i.card === card.name && i.month === selectedMonth);
         
         let closingDay = Number(card.closingDay) || 1;
         let dueDay = Number(card.dueDay) || 1;
-
-        let isClosingToday = (diaAtual === closingDay);
-        let isDueTodayOrPassed = (diaAtual >= dueDay);
 
         if (!cardPaidMonths[card.name]) cardPaidMonths[card.name] = {};
         let isCardQuitado = !!cardPaidMonths[card.name][selectedMonth];
@@ -250,14 +262,31 @@ function renderCardsView() {
         if (isCardQuitado) {
             cardClasses += " border-emerald-500/80 shadow-emerald-950/40 shadow-lg";
             badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 w-fit"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> FATURA QUITADA (${selectedMonth})</span>`;
-        } else if (isDueTodayOrPassed) {
-            cardClasses += " border-rose-500 shadow-rose-950/50 shadow-lg";
-            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse">⚠️ VENCIDO / VENCE HOJE (Dia ${dueDay})</span>`;
-        } else if (isClosingToday) {
-            cardClasses += " border-amber-500 shadow-amber-950/50 shadow-lg animate-pulse";
-            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">🔔 FECHA HOJE (Dia ${closingDay})</span>`;
-        } else {
+        } else if (isFutureMonth) {
             cardClasses += " border-slate-800";
+            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">📅 Fatura Futura / Aberta</span>`;
+        } else if (isPastMonth) {
+            cardClasses += " border-rose-500/80 shadow-rose-950/40 shadow-lg";
+            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">⚠️ PENDENTE (Mês Anterior)</span>`;
+        } else {
+            let isVencidoOuHoje = (diaAtualReal >= dueDay);
+            let isFechado = false;
+            if (closingDay > dueDay) {
+                isFechado = (diaAtualReal >= closingDay || diaAtualReal < dueDay);
+            } else {
+                isFechado = (diaAtualReal >= closingDay && diaAtualReal < dueDay);
+            }
+
+            if (isVencidoOuHoje) {
+                cardClasses += " border-rose-500 shadow-rose-950/50 shadow-lg animate-pulse";
+                badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse">⚠️ VENCIDO / VENCE HOJE (Dia ${dueDay})</span>`;
+            } else if (isFechado) {
+                cardClasses += " border-amber-500 shadow-amber-950/50 shadow-lg";
+                badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">🔔 FATURA FECHADA (Vence dia ${dueDay})</span>`;
+            } else {
+                cardClasses += " border-slate-800";
+                badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700">🛒 Fatura Aberta</span>`;
+            }
         }
 
         let cardDiv = document.createElement('div');
@@ -386,7 +415,6 @@ function renderHouseView() {
     const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
     let projectedItems = getProjectedItems();
     
-    // Inclui tanto "Contas de Casa" quanto "Outros" nesta aba
     let houseItems = projectedItems.filter(i => i.month === selectedMonth && (i.category === 'Contas de Casa' || i.category === 'Outros'));
 
     const tbody = document.getElementById('houseTableBody');
@@ -423,3 +451,9 @@ function renderHouseView() {
     });
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+
+// ================= EXPOSIÇÃO GLOBAL =================
+window.renderDashboard = renderDashboard;
+window.renderCardsView = renderCardsView;
+window.toggleCardMonthPaid = toggleCardMonthPaid;
+window.renderHouseView = renderHouseView;
