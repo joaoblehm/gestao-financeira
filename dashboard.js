@@ -1,5 +1,5 @@
 // ============================================================================
-// DASHBOARD & RENDERIZAÇÃO - dashboard.js (Atualizado com Alertas 100% Responsivos)
+// DASHBOARD & RENDERIZAÇÃO - dashboard.js (Atualizado com Contas de Casa e Outros)
 // ============================================================================
 
 /**
@@ -380,19 +380,21 @@ function toggleCardMonthPaid(cardName, month) {
 
 /**
  * Renderiza a aba de Contas da Casa:
- * - Filtra e exibe apenas os lançamentos pertencentes à categoria "Contas de Casa" para o mês ativo.
+ * - Filtra e exibe os lançamentos pertencentes às categorias "Contas de Casa" e "Outros" para o mês ativo.
  */
 function renderHouseView() {
     const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
     let projectedItems = getProjectedItems();
-    let houseItems = projectedItems.filter(i => i.month === selectedMonth && i.category === 'Contas de Casa');
+    
+    // Inclui tanto "Contas de Casa" quanto "Outros" nesta aba
+    let houseItems = projectedItems.filter(i => i.month === selectedMonth && (i.category === 'Contas de Casa' || i.category === 'Outros'));
 
     const tbody = document.getElementById('houseTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
     if (houseItems.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-500">Nenhuma conta de casa registrada para ${selectedMonth}.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-500">Nenhuma conta ou despesa registrada para ${selectedMonth}.</td></tr>`;
         return;
     }
 
@@ -405,6 +407,7 @@ function renderHouseView() {
             <td class="py-3 px-4 text-xs text-slate-400">${item.month}</td>
             <td class="py-3 px-4 text-xs text-slate-300">Data Base</td>
             <td class="py-3 px-4 font-medium text-white">${item.desc}</td>
+            <td class="py-3 px-4"><span class="badge-categoria ${catClass}">${item.category}</span></td>
             <td class="py-3 px-4 text-right font-semibold text-white">R$ ${item.amount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
             <td class="py-3 px-4 text-center">
                 <button onclick="togglePaidStatus(${item.parentId}, '${item.month}')" class="px-2.5 py-1 rounded-full text-xs font-medium transition ${item.paid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
