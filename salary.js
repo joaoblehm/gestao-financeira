@@ -4,33 +4,21 @@
 
 /**
  * Event listener executado assim que o documento HTML é totalmente carregado.
- * Inicializa o módulo de salários e rendas extras.
  */
 document.addEventListener('DOMContentLoaded', () => {
     initSalaryModule();
 });
 
-/**
- * Configura os ouvintes de eventos e carrega a configuração inicial da aba de salário.
- */
 function initSalaryModule() {
     setupSalaryDOMEvents();
     loadSalaryConfig();
 }
 
-/**
- * Função chamada quando o usuário navega para a aba de Salário & Renda.
- * Atualiza a listagem de entradas e ajusta o filtro global de categorias do topo 
- * para exibir exclusivamente "Salário" e "Renda Extra".
- */
 function initSalaryTab() {
     loadSalaryConfig();
     adjustGlobalCategoryFilterForSalary(true);
 }
 
-/**
- * Configura os ouvintes de eventos para o mês global, filtro de categoria e para o campo de busca de texto.
- */
 function setupSalaryDOMEvents() {
     let globalMonthSelect = document.getElementById('globalMonth');
     if (globalMonthSelect) {
@@ -50,10 +38,6 @@ function setupSalaryDOMEvents() {
     }
 }
 
-/**
- * Altera dinamicamente as opções do seletor de categorias global (#filterCategory) no topo.
- * Quando na aba de salário, restringe às opções de receitas.
- */
 function adjustGlobalCategoryFilterForSalary(isSalaryActive) {
     let filterCatSelect = document.getElementById('filterCategory');
     if (!filterCatSelect) return;
@@ -67,9 +51,6 @@ function adjustGlobalCategoryFilterForSalary(isSalaryActive) {
     }
 }
 
-/**
- * Converte uma string de data no formato "YYYY-MM-DD" para o nome do mês formatado ("Mês/Ano").
- */
 function dateToMonthName(dateStr) {
     if (!dateStr) return 'Novembro/2026';
     let parts = dateStr.split('-');
@@ -88,9 +69,6 @@ function dateToMonthName(dateStr) {
     return `${monthName}/${year}`;
 }
 
-/**
- * Converte o formato do mês do sistema ("Novembro/2026") para o formato aceito por input type="date" ("2026-11-01").
- */
 function monthNameToDateInput(monthStr) {
     if (!monthStr || !monthStr.includes('/')) {
         let now = new Date();
@@ -106,16 +84,10 @@ function monthNameToDateInput(monthStr) {
     return `${year}-${mNum}-01`;
 }
 
-/**
- * Carrega e atualiza a configuração e listagem da aba de salários.
- */
 function loadSalaryConfig() {
     renderIncomesList();
 }
 
-/**
- * Abre o pop-up (modal) para cadastrar uma nova entrada ou editar uma já existente.
- */
 function openExtraIncomeModal(id = null) {
     let modal = document.getElementById('extraIncomeModal');
     if (!modal) {
@@ -162,9 +134,6 @@ function openExtraIncomeModal(id = null) {
     }
 }
 
-/**
- * Cria dinamicamente a estrutura HTML do modal de cadastro/edição de entradas no DOM.
- */
 function createIncomeModalElement() {
     if (document.getElementById('extraIncomeModal')) return;
 
@@ -209,9 +178,6 @@ function createIncomeModalElement() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-/**
- * Fecha o modal de cadastro/edição de entradas e limpa o formulário.
- */
 function closeExtraIncomeModal() {
     let modals = document.querySelectorAll('#extraIncomeModal');
     modals.forEach(modal => {
@@ -222,9 +188,6 @@ function closeExtraIncomeModal() {
     if (form) form.reset();
 }
 
-/**
- * Valida e salva os dados preenchidos no formulário.
- */
 function saveExtraIncome(e) {
     if (e) e.preventDefault();
     
@@ -282,7 +245,7 @@ function saveExtraIncome(e) {
             category,
             desc,
             amount,
-            usedMonths: {} // Inicializa o controlo de meses em que foi usada
+            usedMonths: {}
         });
         if (typeof showToast === 'function') showToast("Entrada cadastrada com sucesso!", "success");
     }
@@ -293,9 +256,6 @@ function saveExtraIncome(e) {
     if (typeof renderApp === 'function') renderApp();
 }
 
-/**
- * Remove uma entrada específica do array após confirmação.
- */
 function deleteExtraIncome(id) {
     let doDel = () => {
         if (typeof extraIncomes !== 'undefined') {
@@ -316,9 +276,6 @@ function deleteExtraIncome(id) {
     }
 }
 
-/**
- * Alterna o estado de uso de uma entrada num determinado mês (propaga se não usada, cessa a partir do mês em diante se usada).
- */
 function toggleIncomeUsed(incomeId, currentMonth) {
     if (typeof extraIncomes === 'undefined') return;
     let inc = extraIncomes.find(e => Number(e.id) === Number(incomeId));
@@ -334,10 +291,6 @@ function toggleIncomeUsed(incomeId, currentMonth) {
     }
 }
 
-/**
- * Função inteligente que avalia quais entradas estão ativas para o mês selecionado,
- * propagando valores passados até que sejam marcados como usados.
- */
 function getActiveIncomesForMonth(targetMonth) {
     if (typeof extraIncomes === 'undefined' || !Array.isArray(extraIncomes)) return [];
 
@@ -365,12 +318,10 @@ function getActiveIncomesForMonth(targetMonth) {
         let incDateParsed = parseMonthYear(incMonthStr);
         let incIndex = incDateParsed.year * 12 + incDateParsed.monthNum;
 
-        // Só considera a entrada do mês de lançamento em diante
         if (targetIndex >= incIndex) {
             let usedMonths = inc.usedMonths || {};
             let isUsedBeforeOrCurrent = false;
 
-            // Verifica se foi marcada como usada em algum mês anterior ou igual ao alvo
             for (let mKey in usedMonths) {
                 if (usedMonths[mKey] === true) {
                     let usedParsed = parseMonthYear(mKey);
@@ -382,7 +333,6 @@ function getActiveIncomesForMonth(targetMonth) {
                 }
             }
 
-            // Se não foi usada ainda, propaga para o mês atual!
             if (!isUsedBeforeOrCurrent) {
                 activeIncomes.push({
                     ...inc,
@@ -396,9 +346,6 @@ function getActiveIncomesForMonth(targetMonth) {
     return activeIncomes;
 }
 
-/**
- * Controla a seleção de todos os checkboxes individuais da tabela.
- */
 function toggleSelectAllIncomes(masterCheckbox) {
     let checkboxes = document.querySelectorAll('.income-checkbox');
     checkboxes.forEach(cb => {
@@ -407,9 +354,6 @@ function toggleSelectAllIncomes(masterCheckbox) {
     updateSelectedIncomesCount();
 }
 
-/**
- * Atualiza o contador de itens selecionados na tabela.
- */
 function updateSelectedIncomesCount() {
     let checkboxes = document.querySelectorAll('.income-checkbox:checked');
     let count = checkboxes.length;
@@ -428,9 +372,6 @@ function updateSelectedIncomesCount() {
     }
 }
 
-/**
- * Exclui em lote todos os itens selecionados.
- */
 function confirmDeleteSelectedIncomes() {
     let checkboxes = document.querySelectorAll('.income-checkbox:checked');
     if (checkboxes.length === 0) return;
@@ -458,7 +399,7 @@ function confirmDeleteSelectedIncomes() {
 }
 
 /**
- * Renderiza a listagem de entradas integrando a regra de propagação contínua e marcação de uso.
+ * Renderiza a listagem de entradas calculando separadamente Base (Salário) e Extra (Renda Extra).
  */
 function renderIncomesList() {
     let month = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
@@ -483,21 +424,42 @@ function renderIncomesList() {
         if (!e.usedMonths) e.usedMonths = {};
     });
 
-    // Obtém as entradas ativas considerando a propagação automática para o mês selecionado
     let activeExtras = getActiveIncomesForMonth(month);
 
-    // Filtra por categoria e busca
     let filteredExtras = activeExtras.filter(e => {
         let matchesCategory = !selectedCategoryFilter || e.category === selectedCategoryFilter;
         let matchesSearch = !searchQuery || (e.desc && e.desc.toLowerCase().includes(searchQuery));
         return matchesCategory && matchesSearch;
     });
     
-    let totalMonthIncomes = filteredExtras.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    // Separação correta: Salário entra como Base, e Renda Extra entra como Extra
+    let baseTotal = 0;
+    let extraTotal = 0;
 
+    activeExtras.forEach(item => {
+        let amt = Number(item.amount) || 0;
+        if (item.category && item.category.toLowerCase().includes('salário')) {
+            baseTotal += amt;
+        } else {
+            extraTotal += amt;
+        }
+    });
+
+    let totalMonthIncomes = baseTotal + extraTotal;
+
+    // Atualiza o card de resumo principal
     let previewEl = document.getElementById('previewSalarioLiquido');
     if (previewEl) {
         previewEl.innerText = `R$ ${totalMonthIncomes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    // Atualiza a linha de detalhamento (Base | Descontos + Extra)
+    let summaryDetailEl = document.getElementById('kpiSalarySubDetail') || document.querySelector('.text-xs.text-slate-400.mt-1'); 
+    // Se o elemento de subtitulo existir, atualizamos seus valores dinamicamente:
+    let subDetailContainer = document.querySelector('.text-xs.text-slate-400.mt-1');
+    if (subDetailContainer && subDetailContainer.innerText.includes('Base R$')) {
+        let totalDescontos = window.totalDescontos || 0; // se houver variável global de descontos
+        subDetailContainer.innerHTML = `Base R$ ${baseTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})} | Descontos R$ ${totalDescontos.toLocaleString('pt-BR', {minimumFractionDigits: 2})} + Extra R$ ${extraTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
     }
 
     let counterEl = document.getElementById('counterSalaryItems');
@@ -518,7 +480,6 @@ function renderIncomesList() {
         let badgeClass = item.category === 'Salário' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
         let displayDate = item.date ? item.date.split('-').reverse().join('/') : item.month;
         
-        // Verifica se foi marcado como usado especificamente neste mês
         let isUsedThisMonth = item.usedMonths && !!item.usedMonths[month];
         let originTag = item.isPropagated ? `<span class="text-[10px] text-amber-400 ml-1 block">(Original: ${item.month})</span>` : '';
 
