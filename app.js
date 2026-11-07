@@ -232,6 +232,7 @@ function switchTab(tabName) {
                 <option value="Mercado">Mercado</option>
                 <option value="Contas de Casa">Contas de Casa</option>
                 <option value="Assinaturas">Assinaturas</option>
+                <option value="Outros">Outros</option>
             `;
         }
     }
