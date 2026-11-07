@@ -115,10 +115,6 @@ function changePage(direction) {
 }
 
 // ================= LÓGICA DE PROPAGAÇÃO DE RENDAS / SALÁRIOS =================
-/**
- * Retorna as rendas e salários ativos para o mês selecionado.
- * O valor mantém-se do mês lançado em diante até ser marcado como usado.
- */
 function getActiveIncomesForMonth(targetMonth) {
     if (typeof extraIncomes === 'undefined' || !Array.isArray(extraIncomes)) return [];
 
@@ -146,12 +142,10 @@ function getActiveIncomesForMonth(targetMonth) {
         let incDateParsed = parseMonthYear(incMonthStr);
         let incIndex = incDateParsed.year * 12 + incDateParsed.monthNum;
 
-        // Só considera da data de lançamento em diante
         if (targetIndex >= incIndex) {
             let usedMonths = inc.usedMonths || {};
             let isUsedBeforeOrCurrent = false;
 
-            // Verifica se foi marcado como usado em algum mês anterior ou igual ao alvo
             for (let mKey in usedMonths) {
                 if (usedMonths[mKey] === true) {
                     let usedParsed = parseMonthYear(mKey);
@@ -163,7 +157,6 @@ function getActiveIncomesForMonth(targetMonth) {
                 }
             }
 
-            // Se não foi usado ainda, propaga para o mês atual!
             if (!isUsedBeforeOrCurrent) {
                 activeIncomes.push({
                     ...inc,
@@ -176,9 +169,6 @@ function getActiveIncomesForMonth(targetMonth) {
     return activeIncomes;
 }
 
-/**
- * Alterna o estado de uso de uma renda/salário num determinado mês
- */
 function toggleIncomeUsed(incomeId, currentMonth) {
     if (typeof extraIncomes === 'undefined') return;
     let inc = extraIncomes.find(e => Number(e.id || e.parentId) === Number(incomeId));
@@ -197,7 +187,7 @@ function toggleIncomeUsed(incomeId, currentMonth) {
 function switchTab(tabName) {
     window.currentPage = 1;
 
-    let tabs = ['tabDashboard', 'tabCards', 'tabHouse', 'tabSalary'];
+    let tabs = ['tabDashboard', 'tabCards', 'tabHouse', 'tabSalary', 'tabAnalytics'];
     tabs.forEach(t => {
         let el = document.getElementById(t);
         if (el) el.classList.add('hidden');
@@ -218,6 +208,7 @@ function switchTab(tabName) {
         if (tabName.toLowerCase() === 'cards' && (onclickAttr.includes('Cards') || btnText.includes('Cartões'))) match = true;
         if (tabName.toLowerCase() === 'house' && (onclickAttr.includes('House') || btnText.includes('Contas'))) match = true;
         if (tabName.toLowerCase() === 'salary' && (onclickAttr.includes('Salary') || btnText.includes('Salário'))) match = true;
+        if (tabName.toLowerCase() === 'analytics' && (onclickAttr.includes('Analytics') || btnText.includes('Análise'))) match = true;
 
         if (match) {
             btn.classList.add('active');
@@ -252,6 +243,10 @@ function switchTab(tabName) {
         initSalaryTab();
     }
 
+    if ((tabName.toLowerCase() === 'analytics' || tabName === 'Analytics') && typeof renderAnalytics === 'function') {
+        renderAnalytics();
+    }
+
     if (typeof renderApp === 'function') {
         renderApp();
     }
@@ -262,6 +257,7 @@ function refreshActiveView() {
     let cardsTab = document.getElementById('tabCards');
     let houseTab = document.getElementById('tabHouse');
     let salaryTab = document.getElementById('tabSalary');
+    let analyticsTab = document.getElementById('tabAnalytics');
 
     if (dashTab && !dashTab.classList.contains('hidden') && typeof renderDashboard === 'function') {
         renderDashboard();
@@ -275,6 +271,9 @@ function refreshActiveView() {
     if (salaryTab && !salaryTab.classList.contains('hidden')) {
         if (typeof initSalaryTab === 'function') initSalaryTab();
         else if (typeof loadSalaryConfig === 'function') loadSalaryConfig();
+    }
+    if (analyticsTab && !analyticsTab.classList.contains('hidden') && typeof renderAnalytics === 'function') {
+        renderAnalytics();
     }
 
     if (typeof lucide !== 'undefined') {
