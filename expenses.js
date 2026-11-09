@@ -2,10 +2,6 @@
 // MÓDULO DE GERENCIAMENTO DE DESPESAS E LANÇAMENTOS - expenses.js
 // ============================================================================
 
-/**
- * Adiciona uma quantidade específica de meses a uma string de mês/ano (Ex: 'Novembro/2026' + 1 = 'Dezembro/2026').
- * Útil para calcular o avanço das parcelas ao longo do tempo.
- */
 function addMonthsToMonthName(monthStr, addCount) {
     const mapNamesBack = {
         'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4,
@@ -30,9 +26,6 @@ function addMonthsToMonthName(monthStr, addCount) {
     return `${mapMonthsInv[newMonthNum]}/${newYear}`;
 }
 
-/**
- * Converte uma data no formato americano (YYYY-MM-DD) para o formato de nome do mês (Ex: '2026-11-09' vira 'Novembro/2026').
- */
 function dateToMonthName(dateStr) {
     if (!dateStr) return 'Novembro/2026';
     let parts = dateStr.split('-');
@@ -51,10 +44,6 @@ function dateToMonthName(dateStr) {
     return `${monthName}/${year}`;
 }
 
-/**
- * PROJEÇÃO DE ITENS: Pega todas as despesas cadastradas e gera as parcelas mês a mês,
- * aplicando regras de fechamento de cartão de crédito e controle de status pago/pendente.
- */
 function getProjectedItems() {
     let projectedItems = [];
     if (typeof expenses === 'undefined') return projectedItems;
@@ -66,7 +55,6 @@ function getProjectedItems() {
         let baseMonth = exp.date ? dateToMonthName(exp.date) : (exp.startMonth || "Novembro/2026");
 
         let effectiveStartMonth = baseMonth;
-        // Regra de Fechamento de Cartão: Se a compra foi após o dia de fechamento, a 1ª parcela vai para o mês seguinte.
         if (exp.category === 'Cartão de Crédito' && exp.card && exp.date && typeof cards !== 'undefined') {
             let targetCard = cards.find(c => c.name === exp.card);
             if (targetCard && targetCard.closingDay) {
@@ -82,15 +70,6 @@ function getProjectedItems() {
             }
         }
 
-        // Formata a data real da compra (YYYY-MM-DD) para exibição visual (DD/MM/AAAA)
-        let formattedDisplayDate = '-';
-        if (exp.date && exp.date.includes('-')) {
-            let p = exp.date.split('-');
-            if (p.length === 3) {
-                formattedDisplayDate = `${p[2]}/${p[1]}/${p[0]}`;
-            }
-        }
-
         for (let i = 0; i < instCount; i++) {
             let targetMonth = effectiveStartMonth;
             if (i > 0) {
@@ -101,9 +80,7 @@ function getProjectedItems() {
             projectedItems.push({
                 id: exp.id,
                 parentId: exp.parentId || exp.id,
-                month: targetMonth,                       // Mês de referência para o filtro do Dashboard
-                date: formattedDisplayDate,               // <--- ALTERADO AQUI: Exibe diretamente a data formatada (DD/MM/AAAA) na tabela
-                rawDate: exp.date,
+                month: targetMonth,
                 desc: exp.desc,
                 category: exp.category,
                 card: exp.card || '-',
@@ -117,9 +94,6 @@ function getProjectedItems() {
     return projectedItems;
 }
 
-/**
- * Abre a janela modal para criar um novo lançamento financeiro ou resetar os campos.
- */
 function openExpenseModal() {
     let modal = document.getElementById('expenseModal');
     if (!modal) {
@@ -148,9 +122,6 @@ function openExpenseModal() {
     if (typeof updateCardClosingInfo === 'function') updateCardClosingInfo();
 }
 
-/**
- * Cria dinamicamente o elemento HTML da modal de despesas injetando-o no DOM.
- */
 function createExpenseModalElement() {
     let existing = document.getElementById('expenseModal');
     if (existing) existing.remove();
@@ -220,9 +191,6 @@ function createExpenseModalElement() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-/**
- * Atualiza dinamicamente as informações de fechamento do cartão de crédito selecionado na modal.
- */
 function updateCardClosingInfo() {
     let catSelect = document.getElementById('expCategory');
     let cardSelect = document.getElementById('expCard');
@@ -277,9 +245,6 @@ function updateCardClosingInfo() {
     }
 }
 
-/**
- * Exibe ou oculta o seletor de cartões dependendo se a categoria escolhida é Cartão de Crédito.
- */
 function toggleCardSelect() {
     let catSelect = document.getElementById('expCategory');
     let container = document.getElementById('cardSelectContainer');
@@ -292,9 +257,6 @@ function toggleCardSelect() {
     }
 }
 
-/**
- * Popula a lista suspensa (dropdown) de cartões disponíveis na modal de cadastro.
- */
 function populateCardDropdown() {
     let cardSelect = document.getElementById('expCard');
     if (!cardSelect) return;
@@ -314,9 +276,6 @@ function populateCardDropdown() {
     });
 }
 
-/**
- * Abre a modal de despesas já com uma categoria específica pré-selecionada.
- */
 function openExpenseModalWithCategory(cat) {
     openExpenseModal();
     let catEl = document.getElementById('expCategory');
@@ -327,9 +286,6 @@ function openExpenseModalWithCategory(cat) {
     }
 }
 
-/**
- * Abre a modal de despesas direcionada a um cartão específico.
- */
 function openExpenseModalForCard(cardName) {
     openExpenseModal();
     let catEl = document.getElementById('expCategory');
@@ -344,9 +300,6 @@ function openExpenseModalForCard(cardName) {
     updateCardClosingInfo();
 }
 
-/**
- * Fecha a modal de lançamentos e limpa o formulário.
- */
 function closeExpenseModal() {
     let modal = document.getElementById('expenseModal');
     if (modal) {
@@ -357,9 +310,6 @@ function closeExpenseModal() {
     if (form) form.reset();
 }
 
-/**
- * Calcula automaticamente o valor total da compra multiplicando as parcelas pelo valor unitário.
- */
 function calculateTotal() {
     let count = parseInt(document.getElementById('expInstallmentsCount').value) || 1;
     let amt = parseFloat(document.getElementById('expInstallmentAmount').value) || 0;
@@ -367,9 +317,6 @@ function calculateTotal() {
     if (totalEl) totalEl.value = (count * amt).toFixed(2);
 }
 
-/**
- * Carrega os dados de um lançamento existente na modal para edição.
- */
 function editExpense(parentId) {
     if (typeof expenses === 'undefined') return;
     let exp = expenses.find(i => Number(i.parentId || i.id) === Number(parentId));
@@ -409,9 +356,6 @@ function editExpense(parentId) {
     updateCardClosingInfo();
 }
 
-/**
- * Salva ou atualiza um lançamento preenchido manualmente na modal, gravando no array global e salvando no armazenamento local.
- */
 function saveExpenseManually() {
     let editIdInput = document.getElementById('expId');
     let editId = editIdInput ? editIdInput.value.trim() : '';
@@ -471,9 +415,6 @@ function saveExpenseManually() {
     if (typeof renderApp === 'function') renderApp();
 }
 
-/**
- * Exclui um lançamento financeiro (e suas respectivas parcelas) do sistema.
- */
 function deleteExpense(parentId) {
     let doDelete = () => {
         window.expenses = expenses.filter(i => Number(i.parentId || i.id) !== Number(parentId));
@@ -489,9 +430,6 @@ function deleteExpense(parentId) {
     }
 }
 
-/**
- * Alterna o status de pagamento (Pago / Pendente) de uma parcela específica em um determinado mês.
- */
 function togglePaidStatus(parentId, month) {
     let exp = expenses.find(i => Number(i.parentId || i.id) === Number(parentId));
     if (exp) {
@@ -502,9 +440,6 @@ function togglePaidStatus(parentId, month) {
     }
 }
 
-/**
- * Confirma a exclusão de todos os lançamentos cadastrados.
- */
 function confirmClearAllData() {
     if (typeof showConfirmModal === 'function') {
         showConfirmModal('Tem certeza absoluta que deseja apagar TODOS os lançamentos?', () => clearAllData());
@@ -513,9 +448,6 @@ function confirmClearAllData() {
     }
 }
 
-/**
- * Limpa todos os dados de lançamentos do sistema.
- */
 function clearAllData() {
     window.expenses = [];
     if (typeof saveData === 'function') saveData();
