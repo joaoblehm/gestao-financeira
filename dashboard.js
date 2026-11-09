@@ -1,13 +1,11 @@
 // ============================================================================
-// DASHBOARD & RENDERIZAÇÃO - dashboard.js (Atualizado com Contas de Casa, Outros e Ciclos Corrigidos)
+// DASHBOARD & RENDERIZAÇÃO - dashboard.js (Com Data Real Exibida e Integrada)
 // ============================================================================
 
 /**
  * Renderiza o painel principal (Dashboard & Extrato):
  * - Filtra as despesas projetadas com base no mês selecionado, categoria e termo de busca.
- * - Aplica paginação (40 itens por página) e cores dinâmicas nas categorias.
- * - Popula a tabela de lançamentos na interface.
- * - Calcula o salário líquido total e os KPIs.
+ * - Aplica paginação (40 itens por página) e exibe a data real do lançamento.
  */
 function renderDashboard() {
     const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
@@ -50,8 +48,11 @@ function renderDashboard() {
         // Cores dinâmicas para a categoria
         let catClass = (typeof getCategoryClass === 'function') ? getCategoryClass(item.category) : 'cat-outro';
 
+        // Exibe a data real da compra (ex: 08/11/2026) em vez do mês por extenso
+        let displayDate = item.date || item.rawDate || item.month;
+
         tr.innerHTML = `
-            <td class="py-3 px-4 text-xs text-slate-400">${item.month}</td>
+            <td class="py-3 px-4 text-xs font-semibold text-indigo-300">${displayDate}</td>
             <td class="py-3 px-4 font-medium text-white">${item.desc}</td>
             <td class="py-3 px-4"><span class="badge-categoria ${catClass}">${item.category}</span></td>
             <td class="py-3 px-4 text-slate-300">${item.card}</td>
@@ -92,7 +93,7 @@ function renderDashboard() {
 
     let salarioLiquidoBase = salConfig.base - salConfig.discount;
 
-    // Leitura e soma de todas as Rendas Extras ativas para o mês selecionado (com suporte a propagação)
+    // Leitura e soma de todas as Rendas Extras ativas para o mês selecionado
     let totalExtraIncome = 0;
     if (typeof getActiveIncomesForMonth === 'function') {
         let activeIncs = getActiveIncomesForMonth(selectedMonth);
@@ -207,7 +208,7 @@ function renderDashboard() {
 }
 
 /**
- * Renderiza a aba de Cartões & Faturas com validação rigorosa de ciclos (fechamento/vencimento) por mês.
+ * Renderiza a aba de Cartões & Faturas exibindo a data real de cada compra.
  */
 function renderCardsView() {
     const grid = document.getElementById('cardsGrid');
@@ -245,7 +246,6 @@ function renderCardsView() {
 
     let isFutureMonth = selDateObj > realDateObj;
     let isPastMonth = selDateObj < realDateObj;
-    let isCurrentMonth = selDateObj.getTime() === realDateObj.getTime();
 
     cards.forEach(card => {
         let monthlyCardItems = projectedItems.filter(i => i.card === card.name && i.month === selectedMonth);
@@ -293,17 +293,17 @@ function renderCardsView() {
         cardDiv.className = cardClasses;
         
         let itemsHtml = '';
-
         if (monthlyCardItems.length === 0) {
             itemsHtml = `<p class="text-xs text-slate-500 italic py-2">Nenhum lançamento neste cartão para ${selectedMonth}.</p>`;
         } else {
             itemsHtml = `<div class="space-y-2 my-3 max-h-56 overflow-y-auto pr-1">`;
-            
             monthlyCardItems.forEach(item => {
                 let itemQuitado = item.paid || isCardQuitado;
+                let itemDate = item.date || item.rawDate || 'Data';
                 itemsHtml += `
                     <div class="flex justify-between items-center bg-slate-800/40 p-2.5 rounded-lg text-xs border border-slate-800">
                         <div>
+                            <div class="text-[10px] text-indigo-400 font-semibold mb-0.5">${itemDate}</div>
                             <div class="font-medium text-white">${item.desc}</div>
                             <div class="text-slate-400 text-[10px] mt-0.5">Parcela: <span class="text-indigo-400 font-semibold">${item.instStr}</span></div>
                         </div>
@@ -430,10 +430,11 @@ function renderHouseView() {
         let tr = document.createElement('tr');
         tr.className = "hover:bg-slate-800/40 transition";
         let catClass = (typeof getCategoryClass === 'function') ? getCategoryClass(item.category) : 'cat-outro';
+        let itemDate = item.date || item.rawDate || 'Data Base';
 
         tr.innerHTML = `
             <td class="py-3 px-4 text-xs text-slate-400">${item.month}</td>
-            <td class="py-3 px-4 text-xs text-slate-300">Data Base</td>
+            <td class="py-3 px-4 text-xs font-medium text-indigo-300">${itemDate}</td>
             <td class="py-3 px-4 font-medium text-white">${item.desc}</td>
             <td class="py-3 px-4"><span class="badge-categoria ${catClass}">${item.category}</span></td>
             <td class="py-3 px-4 text-right font-semibold text-white">R$ ${item.amount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
