@@ -1,7 +1,3 @@
-// ============================================================================
-// DASHBOARD & RENDERIZAÇÃO - dashboard.js (Atualizado com Contas de Casa, Outros e Ciclos Corrigidos)
-// ============================================================================
-
 /**
  * Renderiza o painel principal (Dashboard & Extrato):
  * - Filtra as despesas projetadas com base no mês selecionado, categoria e termo de busca.
@@ -50,8 +46,20 @@ function renderDashboard() {
         // Cores dinâmicas para a categoria
         let catClass = (typeof getCategoryClass === 'function') ? getCategoryClass(item.category) : 'cat-outro';
 
+        // Tratamento da Data Real da Compra (DD/MM/AAAA)
+        let rawDate = item.date || '';
+        let displayDate = '-';
+        if (rawDate && rawDate.includes('-')) {
+            let parts = rawDate.split('-'); // Formato YYYY-MM-DD
+            if (parts.length === 3) {
+                displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+        } else if (rawDate) {
+            displayDate = rawDate;
+        }
+
         tr.innerHTML = `
-            <td class="py-3 px-4 text-xs text-slate-400">${item.month}</td>
+            <td class="py-3 px-4 text-xs font-semibold text-indigo-300">${displayDate}</td>
             <td class="py-3 px-4 font-medium text-white">${item.desc}</td>
             <td class="py-3 px-4"><span class="badge-categoria ${catClass}">${item.category}</span></td>
             <td class="py-3 px-4 text-slate-300">${item.card}</td>
@@ -205,255 +213,3 @@ function renderDashboard() {
     
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
-
-/**
- * Renderiza a aba de Cartões & Faturas com validação rigorosa de ciclos (fechamento/vencimento) por mês.
- */
-function renderCardsView() {
-    const grid = document.getElementById('cardsGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    if (typeof cards === 'undefined' || cards.length === 0) {
-        grid.innerHTML = `<p class="text-slate-500 italic col-span-full">Nenhum cartão cadastrado.</p>`;
-        return;
-    }
-
-    const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
-    let projectedItems = getProjectedItems();
-
-    if (typeof cardPaidMonths === 'undefined') {
-        window.cardPaidMonths = JSON.parse(localStorage.getItem('srin_card_paid_months')) || {};
-    }
-
-    const mesesMap = {
-        'Janeiro': 0, 'Fevereiro': 1, 'Março': 2, 'Abril': 3, 'Maio': 4, 'Junho': 5,
-        'Julho': 6, 'Agosto': 7, 'Setembro': 8, 'Outubro': 9, 'Novembro': 10, 'Dezembro': 11
-    };
-
-    const hoje = new Date();
-    const anoAtualReal = hoje.getFullYear();
-    const mesAtualReal = hoje.getMonth();
-    const diaAtualReal = hoje.getDate();
-
-    let [nomeMesSel, anoSelStr] = selectedMonth.split('/');
-    let mesSelIndex = mesesMap[nomeMesSel?.trim()] !== undefined ? mesesMap[nomeMesSel.trim()] : mesAtualReal;
-    let anoSel = parseInt(anoSelStr) || anoAtualReal;
-
-    let selDateObj = new Date(anoSel, mesSelIndex, 1);
-    let realDateObj = new Date(anoAtualReal, mesAtualReal, 1);
-
-    let isFutureMonth = selDateObj > realDateObj;
-    let isPastMonth = selDateObj < realDateObj;
-    let isCurrentMonth = selDateObj.getTime() === realDateObj.getTime();
-
-    cards.forEach(card => {
-        let monthlyCardItems = projectedItems.filter(i => i.card === card.name && i.month === selectedMonth);
-        
-        let closingDay = Number(card.closingDay) || 1;
-        let dueDay = Number(card.dueDay) || 1;
-
-        if (!cardPaidMonths[card.name]) cardPaidMonths[card.name] = {};
-        let isCardQuitado = !!cardPaidMonths[card.name][selectedMonth];
-
-        let cardClasses = "bg-slate-900 border rounded-xl p-5 flex flex-col justify-between shadow-sm transition relative overflow-hidden";
-        let badgeHtml = '';
-
-        if (isCardQuitado) {
-            cardClasses += " border-emerald-500/80 shadow-emerald-950/40 shadow-lg";
-            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 w-fit"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> FATURA QUITADA (${selectedMonth})</span>`;
-        } else if (isFutureMonth) {
-            cardClasses += " border-slate-800";
-            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">📅 Fatura Futura / Aberta</span>`;
-        } else if (isPastMonth) {
-            cardClasses += " border-rose-500/80 shadow-rose-950/40 shadow-lg";
-            badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">⚠️ PENDENTE (Mês Anterior)</span>`;
-        } else {
-            let isVencidoOuHoje = (diaAtualReal >= dueDay);
-            let isFechado = false;
-            if (closingDay > dueDay) {
-                isFechado = (diaAtualReal >= closingDay || diaAtualReal < dueDay);
-            } else {
-                isFechado = (diaAtualReal >= closingDay && diaAtualReal < dueDay);
-            }
-
-            if (isVencidoOuHoje) {
-                cardClasses += " border-rose-500 shadow-rose-950/50 shadow-lg animate-pulse";
-                badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse">⚠️ VENCIDO / VENCE HOJE (Dia ${dueDay})</span>`;
-            } else if (isFechado) {
-                cardClasses += " border-amber-500 shadow-amber-950/50 shadow-lg";
-                badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">🔔 FATURA FECHADA (Vence dia ${dueDay})</span>`;
-            } else {
-                cardClasses += " border-slate-800";
-                badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700">🛒 Fatura Aberta</span>`;
-            }
-        }
-
-        let cardDiv = document.createElement('div');
-        cardDiv.className = cardClasses;
-        
-        let itemsHtml = '';
-
-        if (monthlyCardItems.length === 0) {
-            itemsHtml = `<p class="text-xs text-slate-500 italic py-2">Nenhum lançamento neste cartão para ${selectedMonth}.</p>`;
-        } else {
-            itemsHtml = `<div class="space-y-2 my-3 max-h-56 overflow-y-auto pr-1">`;
-            
-            monthlyCardItems.forEach(item => {
-                let itemQuitado = item.paid || isCardQuitado;
-                itemsHtml += `
-                    <div class="flex justify-between items-center bg-slate-800/40 p-2.5 rounded-lg text-xs border border-slate-800">
-                        <div>
-                            <div class="font-medium text-white">${item.desc}</div>
-                            <div class="text-slate-400 text-[10px] mt-0.5">Parcela: <span class="text-indigo-400 font-semibold">${item.instStr}</span></div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-semibold text-white">R$ ${item.amount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
-                            <span class="text-[10px] ${itemQuitado ? 'text-emerald-400' : 'text-amber-400'}">${itemQuitado ? 'Quitado' : 'Pendente'}</span>
-                        </div>
-                    </div>
-                `;
-            });
-            itemsHtml += `</div>`;
-        }
-
-        let totalCardFat = monthlyCardItems.reduce((acc, curr) => acc + curr.amount, 0);
-
-        let limitStatus = (typeof getCardLimitStatus === 'function') 
-            ? getCardLimitStatus(card.name, selectedMonth, card.limit) 
-            : { available: Math.max(0, Number(card.limit || 0) - totalCardFat) };
-
-        cardDiv.innerHTML = `
-            <div>
-                <div class="flex justify-between items-start gap-2 mb-2">
-                    <div class="flex-1">
-                        <h3 class="font-bold text-white text-base flex items-center gap-2">
-                            <i data-lucide="credit-card" class="text-indigo-400 w-5 h-5 shrink-0"></i> 
-                            <span class="truncate">${card.name}</span>
-                        </h3>
-                        <div>${badgeHtml}</div>
-                    </div>
-                    <div class="flex items-center gap-2 shrink-0 bg-slate-800/80 p-1.5 rounded-lg border border-slate-700/60">
-                        <button onclick="openCardModal(${card.id})" class="text-slate-300 hover:text-indigo-400 transition p-1" title="Editar Cartão"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                        <button onclick="deleteCard(${card.id})" class="text-slate-300 hover:text-rose-400 transition p-1" title="Excluir Cartão"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    </div>
-                </div>
-                <div class="text-xs text-slate-400 space-y-1.5 mb-3 mt-2">
-                    <div class="flex justify-between">
-                        <span>Fechamento: Dia ${card.closingDay}</span>
-                        <span>Vencimento: Dia ${card.dueDay}</span>
-                    </div>
-                    <div class="flex justify-between font-medium text-slate-300">
-                        <span>Limite Total:</span>
-                        <span>R$ ${Number(card.limit || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                    </div>
-                    <div class="flex justify-between font-bold text-emerald-400 pt-1 border-t border-slate-800/60">
-                        <span>Limite Disponível:</span>
-                        <span>R$ ${limitStatus.available.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                    </div>
-                </div>
-                <div class="border-t border-slate-800 pt-2 mb-2 flex justify-between items-center">
-                    <span class="text-xs font-semibold text-slate-300">Fatura (${selectedMonth}):</span>
-                    <span class="text-sm font-bold text-indigo-400">R$ ${totalCardFat.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                </div>
-                ${itemsHtml}
-            </div>
-            <div class="space-y-2 mt-3 pt-3 border-t border-slate-800">
-                <button onclick="toggleCardMonthPaid('${card.name}', '${selectedMonth}')" class="w-full py-2.5 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition ${isCardQuitado ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'}">
-                    <i data-lucide="${isCardQuitado ? 'check-check' : 'check'}" class="w-4 h-4"></i>
-                    ${isCardQuitado ? 'Fatura Quitada (Clique para Reabrir)' : 'Marcar Fatura como Quitada'}
-                </button>
-                <button onclick="openExpenseModalForCard('${card.name}')" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 rounded-lg font-medium flex items-center justify-center gap-1.5 transition">
-                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar Gasto neste Cartão
-                </button>
-            </div>
-        `;
-        grid.appendChild(cardDiv);
-    });
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-}
-
-/**
- * Alterna o status de quitação da fatura de um cartão específico para o mês selecionado.
- */
-function toggleCardMonthPaid(cardName, month) {
-    if (typeof cardPaidMonths === 'undefined') {
-        window.cardPaidMonths = JSON.parse(localStorage.getItem('srin_card_paid_months')) || {};
-    }
-    if (!cardPaidMonths[cardName]) cardPaidMonths[cardName] = {};
-
-    let currentState = !!cardPaidMonths[cardName][month];
-    let newState = !currentState;
-    cardPaidMonths[cardName][month] = newState;
-
-    if (typeof expenses !== 'undefined') {
-        expenses.forEach(exp => {
-            if (exp.card === cardName) {
-                let projected = getProjectedItems().filter(i => Number(i.parentId || i.id) === Number(exp.parentId || exp.id) && i.month === month);
-                if (projected.length > 0) {
-                    if (!exp.paidMonths) exp.paidMonths = {};
-                    exp.paidMonths[month] = newState;
-                }
-            }
-        });
-    }
-
-    localStorage.setItem('srin_card_paid_months', JSON.stringify(cardPaidMonths));
-    saveData();
-    renderApp();
-
-    if (typeof showToast === 'function') {
-        showToast(newState ? `Fatura de ${cardName} (${month}) marcada como quitada!` : `Fatura de ${cardName} (${month}) reaberta.`, "success");
-    }
-}
-
-/**
- * Renderiza a aba de Contas da Casa:
- * - Filtra e exibe os lançamentos pertencentes às categorias "Contas de Casa" e "Outros" para o mês ativo.
- */
-function renderHouseView() {
-    const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
-    let projectedItems = getProjectedItems();
-    
-    let houseItems = projectedItems.filter(i => i.month === selectedMonth && (i.category === 'Contas de Casa' || i.category === 'Outros'));
-
-    const tbody = document.getElementById('houseTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    if (houseItems.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-500">Nenhuma conta ou despesa registrada para ${selectedMonth}.</td></tr>`;
-        return;
-    }
-
-    houseItems.forEach(item => {
-        let tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-800/40 transition";
-        let catClass = (typeof getCategoryClass === 'function') ? getCategoryClass(item.category) : 'cat-outro';
-
-        tr.innerHTML = `
-            <td class="py-3 px-4 text-xs text-slate-400">${item.month}</td>
-            <td class="py-3 px-4 text-xs text-slate-300">Data Base</td>
-            <td class="py-3 px-4 font-medium text-white">${item.desc}</td>
-            <td class="py-3 px-4"><span class="badge-categoria ${catClass}">${item.category}</span></td>
-            <td class="py-3 px-4 text-right font-semibold text-white">R$ ${item.amount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-            <td class="py-3 px-4 text-center">
-                <button onclick="togglePaidStatus(${item.parentId}, '${item.month}')" class="px-2.5 py-1 rounded-full text-xs font-medium transition ${item.paid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
-                    ${item.paid ? 'Pago' : 'Pendente'}
-                </button>
-            </td>
-            <td class="py-3 px-4 text-center flex items-center justify-center gap-1">
-                <button onclick="editExpense(${item.parentId})" class="p-1 hover:text-indigo-400 text-slate-400 transition" title="Editar"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                <button onclick="deleteExpense(${item.parentId})" class="p-1 hover:text-rose-400 text-slate-400 transition" title="Excluir"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-}
-
-// ================= EXPOSIÇÃO GLOBAL =================
-window.renderDashboard = renderDashboard;
-window.renderCardsView = renderCardsView;
-window.toggleCardMonthPaid = toggleCardMonthPaid;
-window.renderHouseView = renderHouseView;
