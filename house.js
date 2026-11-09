@@ -1,20 +1,20 @@
 // ============================================================================
-// MÓDULO DE CONTAS DA CASA & DESPESAS - house.js (Profissional e Inteligente)
+// MÓDULO DE CONTAS DA CASA & DESPESAS - house.js (Profissional Brasil)
 // ============================================================================
 
 /**
  * Renderiza a aba de Contas da Casa e Outros:
- * - Aplica regras específicas por categoria (Conta Fixa, Empréstimo, Assinaturas e Outros).
- * - Exibe a data real do lançamento e o status inteligente de controle.
+ * - Filtra e exibe Contas Fixas, Contas da Casa (Variáveis), Empréstimos, Assinaturas e Outros.
+ * - Exibe a data de vencimento correta, status de pagamento individual e controle de ativos.
  */
 function renderHouseView() {
     const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
     let projectedItems = getProjectedItems();
     
-    // Filtra itens pertinentes a esta aba (Contas de Casa e Outros, além de subcategorias tratadas)
+    // Filtra itens pertinentes a esta aba de forma abrangente
     let houseItems = projectedItems.filter(i => {
         let cat = (i.category || '').toLowerCase();
-        return cat.includes('conta') || cat.includes('casa') || cat.includes('emprestimo') || cat.includes('assinatura') || cat.includes('outro');
+        return cat.includes('conta') || cat.includes('casa') || cat.includes('fixa') || cat.includes('emprestimo') || cat.includes('assinatura') || cat.includes('outro');
     });
 
     const tbody = document.getElementById('houseTableBody');
@@ -22,7 +22,7 @@ function renderHouseView() {
     tbody.innerHTML = '';
 
     if (houseItems.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-500">Nenhuma conta ou despesa registrada para ${selectedMonth}.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-500">Nenhuma conta ou despesa residencial registrada para ${selectedMonth}.</td></tr>`;
         return;
     }
 
@@ -30,22 +30,22 @@ function renderHouseView() {
         let tr = document.createElement('tr');
         tr.className = "hover:bg-slate-800/40 transition";
         let catClass = (typeof getCategoryClass === 'function') ? getCategoryClass(item.category) : 'cat-outro';
+        
+        // Exibe estritamente a data de vencimento ou competência real
         let itemDate = item.date || item.rawDate || 'Data Base';
         let categoryLower = (item.category || '').toLowerCase();
 
-        // Identificação e regras visuais por tipo de categoria
         let badgeExtraHtml = '';
         let statusBadgeHtml = '';
 
         if (categoryLower.includes('fixa') || categoryLower.includes('contas de casa')) {
-            // Conta Fixa: permanece pendente/visível até ser marcada como paga
+            badgeExtraHtml = `<div class="text-[10px] text-indigo-400 font-semibold mt-0.5">Vencimento: ${itemDate}</div>`;
             statusBadgeHtml = `
                 <button onclick="togglePaidStatus(${item.parentId}, '${item.month}')" class="px-2.5 py-1 rounded-full text-xs font-medium transition ${item.paid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
-                    ${item.paid ? 'Pago (Fixa)' : 'Pendente (Fixa)'}
+                    ${item.paid ? 'Pago' : 'Pendente'}
                 </button>
             `;
         } else if (categoryLower.includes('emprestimo')) {
-            // Empréstimo: Guiado pela data de vencimento real
             badgeExtraHtml = `<div class="text-[10px] text-rose-400 font-semibold mt-0.5">Vencimento: ${itemDate}</div>`;
             statusBadgeHtml = `
                 <button onclick="togglePaidStatus(${item.parentId}, '${item.month}')" class="px-2.5 py-1 rounded-full text-xs font-medium transition ${item.paid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
@@ -53,16 +53,14 @@ function renderHouseView() {
                 </button>
             `;
         } else if (categoryLower.includes('assinatura')) {
-            // Assinaturas: Controle de Ativa / Inativa
-            let isAtivo = !item.inactive; // Se não estiver marcado como inativo, está ativo gerando custo
-            badgeExtraHtml = `<div class="text-[10px] ${isAtivo ? 'text-indigo-400' : 'text-slate-500'} font-semibold mt-0.5">${isAtivo ? 'Assinatura Ativa' : 'Assinatura Inativa'}</div>`;
+            let isAtivo = !item.inactive;
+            badgeExtraHtml = `<div class="text-[10px] ${isAtivo ? 'text-indigo-400' : 'text-slate-500'} font-semibold mt-0.5">${isAtivo ? 'Ativa' : 'Inativa'}</div>`;
             statusBadgeHtml = `
                 <button onclick="togglePaidStatus(${item.parentId}, '${item.month}')" class="px-2.5 py-1 rounded-full text-xs font-medium transition ${item.paid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'}">
                     ${item.paid ? 'Pago' : 'Cobrança do Mês'}
                 </button>
             `;
         } else {
-            // Outros / Padrão
             statusBadgeHtml = `
                 <button onclick="togglePaidStatus(${item.parentId}, '${item.month}')" class="px-2.5 py-1 rounded-full text-xs font-medium transition ${item.paid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
                     ${item.paid ? 'Pago' : 'Pendente'}
