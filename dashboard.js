@@ -1,11 +1,11 @@
 // ============================================================================
-// DASHBOARD & RENDERIZAÇÃO - dashboard.js (Limpo e Modularizado)
+// DASHBOARD & RENDERIZAÇÃO COMPLETA - dashboard.js (Profissional Brasil)
 // ============================================================================
 
 /**
  * Renderiza o painel principal (Dashboard & Extrato):
  * - Filtra as despesas projetadas com base no mês selecionado, categoria e termo de busca.
- * - Aplica paginação (40 itens por página) e exibe a data real do lançamento.
+ * - Aplica paginação e exibe estritamente a data real formatada (DD/MM/AAAA).
  */
 function renderDashboard() {
     const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
@@ -28,28 +28,46 @@ function renderDashboard() {
     let counterEl = document.getElementById('counterLancamentos');
     if (counterEl) counterEl.innerText = `${filtered.length} itens`;
 
-    // Aplicação da paginação (40 itens por página)
     if (typeof window.currentPage === 'undefined') window.currentPage = 1;
     let paginatedFiltered = (typeof paginateItems === 'function') ? paginateItems(filtered) : filtered;
 
     let totalGastosMes = 0;
     let totalPendenteMes = 0;
 
-    // Totais calculados sobre o total filtrado (não apenas a página atual)
+    // Soma rigorosa de todos os gastos do mês (incluindo Cartões, Contas Fixas e Contas da Casa)
     filtered.forEach(item => {
-        totalGastosMes += item.amount;
-        if (!item.paid) totalPendenteMes += item.amount;
+        totalGastosMes += Number(item.amount || 0);
+        if (!item.paid) totalPendenteMes += Number(item.amount || 0);
     });
 
     paginatedFiltered.forEach(item => {
         let tr = document.createElement('tr');
         tr.className = "hover:bg-slate-800/40 transition";
         
-        // Cores dinâmicas para a categoria
         let catClass = (typeof getCategoryClass === 'function') ? getCategoryClass(item.category) : 'cat-outro';
 
-        // Exibe a data real da compra (ex: 08/11/2026) em vez do mês por extenso
-        let displayDate = item.date || item.rawDate || item.month;
+        // --- CONVERSÃO RIGOROSA DA DATA PARA O FORMATO BRASILEIRO (DD/MM/AAAA) ---
+        let rawDate = item.date || item.rawDate || '';
+        let displayDate = '-';
+        
+        if (rawDate && rawDate.includes('-')) {
+            let parts = rawDate.split('-'); // Formato YYYY-MM-DD
+            if (parts.length === 3) {
+                displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+        } else if (rawDate && rawDate.includes('/')) {
+            displayDate = rawDate; // Já formatado
+        } else {
+            const mapMonthNum = {
+                'Janeiro': '01', 'Fevereiro': '02', 'Março': '03', 'Abril': '04',
+                'Maio': '05', 'Junho': '06', 'Julho': '07', 'Agosto': '08',
+                'Setembro': '09', 'Outubro': '10', 'Novembro': '11', 'Dezembro': '12'
+            };
+            let [mName, yStr] = selectedMonth.split('/');
+            let mNum = mapMonthNum[mName?.trim()] || '11';
+            let yearVal = yStr || '2026';
+            displayDate = `01/${mNum}/${yearVal}`;
+        }
 
         tr.innerHTML = `
             <td class="py-3 px-4 text-xs font-semibold text-indigo-300">${displayDate}</td>
@@ -57,8 +75,8 @@ function renderDashboard() {
             <td class="py-3 px-4"><span class="badge-categoria ${catClass}">${item.category}</span></td>
             <td class="py-3 px-4 text-slate-300">${item.card}</td>
             <td class="py-3 px-4 text-xs font-semibold text-indigo-400">${item.instStr}</td>
-            <td class="py-3 px-4 text-right font-semibold text-white">R$ ${item.amount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-            <td class="py-3 px-4 text-right text-slate-400">R$ ${item.total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+            <td class="py-3 px-4 text-right font-semibold text-white">R$ ${Number(item.amount || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+            <td class="py-3 px-4 text-right text-slate-400">R$ ${Number(item.total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
             <td class="py-3 px-4 text-center">
                 <button onclick="togglePaidStatus(${item.parentId}, '${item.month}')" class="px-2.5 py-1 rounded-full text-xs font-medium transition ${item.paid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
                     ${item.paid ? 'Pago' : 'Pendente'}
@@ -72,12 +90,11 @@ function renderDashboard() {
         tbody.appendChild(tr);
     });
 
-    // Renderiza a paginação abaixo da tabela se existir contentor
     if (typeof renderPaginationControls === 'function') {
         renderPaginationControls(filtered.length, 'paginationContainer');
     }
 
-    // Leitura estrita do Salário Configurado para o Mês
+    // --- CÁLCULO DE SALÁRIO E RENDAS EXTRAS ---
     let salConfig = { base: 0, discount: 0 };
     if (typeof salaryConfigs !== 'undefined' && Array.isArray(salaryConfigs)) {
         let cleanSel = selectedMonth.replace(/\s+/g, '').replace(/\//g, '').toLowerCase();
@@ -93,7 +110,6 @@ function renderDashboard() {
 
     let salarioLiquidoBase = salConfig.base - salConfig.discount;
 
-    // Leitura e soma de todas as Rendas Extras ativas para o mês selecionado
     let totalExtraIncome = 0;
     if (typeof getActiveIncomesForMonth === 'function') {
         let activeIncs = getActiveIncomesForMonth(selectedMonth);
@@ -112,7 +128,7 @@ function renderDashboard() {
     let salarioLiquidoTotal = salarioLiquidoBase + totalExtraIncome;
     let sobra = salarioLiquidoTotal - totalGastosMes;
 
-    // Atualização dos elementos visuais dos KPIs no Dashboard
+    // --- ATUALIZAÇÃO DOS KPIS ---
     let kpiSalario = document.getElementById('kpiSalario');
     if (kpiSalario) kpiSalario.innerText = `R$ ${salarioLiquidoTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
     
@@ -152,10 +168,10 @@ function renderDashboard() {
         }
     }
 
-    // Verificação de alertas automáticos 100% responsivos para mobile
+    // --- ALERTAS AUTOMÁTICOS ---
     let totalCartoesMes = filtered
         .filter(i => i.category === 'Cartão de Crédito')
-        .reduce((acc, curr) => acc + curr.amount, 0);
+        .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
 
     let alertsHtml = '';
 
@@ -208,7 +224,7 @@ function renderDashboard() {
 }
 
 /**
- * Renderiza a aba de Cartões & Faturas exibindo a data real de cada compra.
+ * Renderiza a aba de Cartões & Faturas.
  */
 function renderCardsView() {
     const grid = document.getElementById('cardsGrid');
@@ -299,7 +315,15 @@ function renderCardsView() {
             itemsHtml = `<div class="space-y-2 my-3 max-h-56 overflow-y-auto pr-1">`;
             monthlyCardItems.forEach(item => {
                 let itemQuitado = item.paid || isCardQuitado;
-                let itemDate = item.date || item.rawDate || 'Data';
+                let rawItDate = item.date || item.rawDate || '';
+                let itemDate = 'Data';
+                if (rawItDate && rawItDate.includes('-')) {
+                    let p = rawItDate.split('-');
+                    if (p.length === 3) itemDate = `${p[2]}/${p[1]}/${p[0]}`;
+                } else if (rawItDate) {
+                    itemDate = rawItDate;
+                }
+
                 itemsHtml += `
                     <div class="flex justify-between items-center bg-slate-800/40 p-2.5 rounded-lg text-xs border border-slate-800">
                         <div>
@@ -308,7 +332,7 @@ function renderCardsView() {
                             <div class="text-slate-400 text-[10px] mt-0.5">Parcela: <span class="text-indigo-400 font-semibold">${item.instStr}</span></div>
                         </div>
                         <div class="text-right">
-                            <div class="font-semibold text-white">R$ ${item.amount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                            <div class="font-semibold text-white">R$ ${Number(item.amount || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
                             <span class="text-[10px] ${itemQuitado ? 'text-emerald-400' : 'text-amber-400'}">${itemQuitado ? 'Quitado' : 'Pendente'}</span>
                         </div>
                     </div>
@@ -317,7 +341,7 @@ function renderCardsView() {
             itemsHtml += `</div>`;
         }
 
-        let totalCardFat = monthlyCardItems.reduce((acc, curr) => acc + curr.amount, 0);
+        let totalCardFat = monthlyCardItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
 
         let limitStatus = (typeof getCardLimitStatus === 'function') 
             ? getCardLimitStatus(card.name, selectedMonth, card.limit) 
@@ -407,7 +431,217 @@ function toggleCardMonthPaid(cardName, month) {
     }
 }
 
+/**
+ * Renderiza a aba completa de Salário & Renda.
+ */
+function renderSalaryView() {
+    const container = document.getElementById('salaryContainer') || document.getElementById('salaryViewContainer');
+    if (!container) return;
+    
+    const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
+    
+    let salConfig = { base: 0, discount: 0 };
+    if (typeof salaryConfigs !== 'undefined' && Array.isArray(salaryConfigs)) {
+        let cleanSel = selectedMonth.replace(/\s+/g, '').replace(/\//g, '').toLowerCase();
+        let sc = salaryConfigs.find(s => s.month && s.month.replace(/\s+/g, '').replace(/\//g, '').toLowerCase() === cleanSel);
+        if (sc && !sc.deleted) {
+            salConfig = { base: Number(sc.base) || 0, discount: Number(sc.discount) || 0 };
+        }
+    }
+
+    let extraListHtml = '';
+    let currentExtras = (typeof extraIncomes !== 'undefined') ? extraIncomes.filter(e => !e.month || e.month === selectedMonth) : [];
+    
+    if (currentExtras.length === 0) {
+        extraListHtml = `<p class="text-xs text-slate-500 italic">Nenhuma renda extra cadastrada para ${selectedMonth}.</p>`;
+    } else {
+        currentExtras.forEach((inc) => {
+            extraListHtml += `
+                <div class="flex justify-between items-center bg-slate-800/40 p-3 rounded-lg text-xs border border-slate-800">
+                    <div>
+                        <div class="font-medium text-white">${inc.desc}</div>
+                        <div class="text-[10px] text-emerald-400 mt-0.5">Renda Ativa</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-emerald-400">R$ ${Number(inc.amount || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                        <button onclick="deleteExtraIncome(${inc.id})" class="text-slate-400 hover:text-rose-400 transition" title="Excluir"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    container.innerHTML = `
+        <div class="space-y-6 max-w-4xl mx-auto">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm space-y-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="dollar-sign" class="text-emerald-400 w-5 h-5"></i>
+                    Configuração de Salário Base (${selectedMonth})
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Salário Base (R$)</label>
+                        <input type="number" step="0.01" id="inputSalBase" value="${salConfig.base}" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Descontos / INSS / IRRF (R$)</label>
+                        <input type="number" step="0.01" id="inputSalDiscount" value="${salConfig.discount}" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button onclick="saveSalaryConfigFromScreen()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-600/20">
+                        Salvar Configuração de Salário
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm space-y-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="plus-circle" class="text-indigo-400 w-5 h-5"></i>
+                    Rendas Extras e Entradas de Caixa (${selectedMonth})
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Descrição da Renda Extra</label>
+                        <input type="text" id="extraDescInput" placeholder="Ex: Freela, Dividendos, Venda..." class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Valor (R$)</label>
+                        <input type="number" step="0.01" id="extraAmountInput" placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button onclick="addExtraIncomeFromScreen()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition">
+                        Adicionar Renda Extra
+                    </button>
+                </div>
+                <div class="border-t border-slate-800 pt-4 space-y-2">
+                    <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Rendas Registradas</h4>
+                    ${extraListHtml}
+                </div>
+            </div>
+        </div>
+    `;
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+/**
+ * Renderiza a aba completa de Análise Avançada.
+ */
+function renderAdvancedAnalysisView() {
+    const container = document.getElementById('advancedAnalysisContainer') || document.getElementById('analysisViewContainer');
+    if (!container) return;
+
+    const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
+    let projectedItems = getProjectedItems();
+    let monthItems = projectedItems.filter(i => i.month === selectedMonth);
+
+    let totalGasto = monthItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+    
+    let catTotals = {};
+    monthItems.forEach(i => {
+        let cat = i.category || 'Outros';
+        catTotals[cat] = (catTotals[cat] || 0) + Number(i.amount || 0);
+    });
+
+    let catHtml = '';
+    Object.keys(catTotals).forEach(cat => {
+        let val = catTotals[cat];
+        let pct = totalGasto > 0 ? ((val / totalGasto) * 100).toFixed(1) : 0;
+        catHtml += `
+            <div class="bg-slate-800/40 p-3 rounded-lg border border-slate-800 flex justify-between items-center text-xs">
+                <div>
+                    <span class="font-bold text-white">${cat}</span>
+                    <div class="text-slate-400 text-[10px] mt-0.5">${pct}% do total de gastos</div>
+                </div>
+                <span class="font-semibold text-indigo-400">R$ ${val.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+            </div>
+        `;
+    });
+
+    container.innerHTML = `
+        <div class="space-y-6 max-w-4xl mx-auto">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm space-y-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="bar-chart-3" class="text-indigo-400 w-5 h-5"></i>
+                    Análise de Gastos por Categoria (${selectedMonth})
+                </h3>
+                <div class="text-sm text-slate-300 mb-4">
+                    Total de Gastos no Período: <strong class="text-white">R$ ${totalGasto.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>
+                </div>
+                <div class="space-y-2">
+                    ${catHtml || '<p class="text-xs text-slate-500 italic">Nenhum gasto registrado para análise neste mês.</p>'}
+                </div>
+            </div>
+        </div>
+    `;
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function saveSalaryConfigFromScreen() {
+    const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : 'Novembro/2026';
+    let base = parseFloat(document.getElementById('inputSalBase')?.value) || 0;
+    let discount = parseFloat(document.getElementById('inputSalDiscount')?.value) || 0;
+
+    if (typeof salaryConfigs === 'undefined') window.salaryConfigs = [];
+
+    let cleanSel = selectedMonth.replace(/\s+/g, '').replace(/\//g, '').toLowerCase();
+    let existingIndex = salaryConfigs.findIndex(s => s.month && s.month.replace(/\s+/g, '').replace(/\//g, '').toLowerCase() === cleanSel);
+
+    if (existingIndex !== -1) {
+        salaryConfigs[existingIndex].base = base;
+        salaryConfigs[existingIndex].discount = discount;
+        salaryConfigs[existingIndex].deleted = false;
+    } else {
+        salaryConfigs.push({ month: selectedMonth, base, discount, deleted: false });
+    }
+
+    if (typeof saveData === 'function') saveData();
+    if (typeof renderApp === 'function') renderApp();
+    if (typeof showToast === 'function') showToast("Salário atualizado com sucesso!", "success");
+}
+
+function addExtraIncomeFromScreen() {
+    const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : 'Novembro/2026';
+    let desc = document.getElementById('extraDescInput')?.value.trim();
+    let amount = parseFloat(document.getElementById('extraAmountInput')?.value) || 0;
+
+    if (!desc || !amount) {
+        if (typeof showToast === 'function') showToast("Preencha a descrição e o valor da renda extra.", "error");
+        else alert("Preencha a descrição e o valor da renda extra.");
+        return;
+    }
+
+    if (typeof extraIncomes === 'undefined') window.extraIncomes = [];
+
+    let newId = extraIncomes.length > 0 ? Math.max(...extraIncomes.map(e => e.id || 0)) + 1 : 1;
+    extraIncomes.push({
+        id: newId,
+        month: selectedMonth,
+        desc,
+        amount
+    });
+
+    if (typeof saveData === 'function') saveData();
+    if (typeof renderApp === 'function') renderApp();
+    if (typeof showToast === 'function') showToast("Renda extra adicionada com sucesso!", "success");
+}
+
+function deleteExtraIncome(id) {
+    if (typeof extraIncomes === 'undefined') return;
+    window.extraIncomes = extraIncomes.filter(e => Number(e.id) !== Number(id));
+    if (typeof saveData === 'function') saveData();
+    if (typeof renderApp === 'function') renderApp();
+    if (typeof showToast === 'function') showToast("Renda extra excluída.", "success");
+}
+
 // ================= EXPOSIÇÃO GLOBAL =================
 window.renderDashboard = renderDashboard;
 window.renderCardsView = renderCardsView;
-window.toggleCardMonthPaid = toggleCardMonthPaid;
+window.renderSalaryView = renderSalaryView;
+window.renderAdvancedAnalysisView = renderAdvancedAnalysisView;
+window.saveSalaryConfigFromScreen = saveSalaryConfigFromScreen;
+window.addExtraIncomeFromScreen = addExtraIncomeFromScreen;
+window.deleteExtraIncome = deleteExtraIncome;
