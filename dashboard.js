@@ -1,5 +1,5 @@
 // ============================================================================
-// DASHBOARD & RENDERIZAÇÃO COMPLETA - dashboard.js (Profissional Brasil)
+// DASHBOARD & RENDERIZAÇÃO COMPLETA - dashboard.js (Versão Unificada Original)
 // ============================================================================
 
 /**
@@ -34,7 +34,6 @@ function renderDashboard() {
     let totalGastosMes = 0;
     let totalPendenteMes = 0;
 
-    // Soma rigorosa de todos os gastos do mês (incluindo Cartões, Contas Fixas e Contas da Casa)
     filtered.forEach(item => {
         totalGastosMes += Number(item.amount || 0);
         if (!item.paid) totalPendenteMes += Number(item.amount || 0);
@@ -46,17 +45,16 @@ function renderDashboard() {
         
         let catClass = (typeof getCategoryClass === 'function') ? getCategoryClass(item.category) : 'cat-outro';
 
-        // --- CONVERSÃO RIGOROSA DA DATA PARA O FORMATO BRASILEIRO (DD/MM/AAAA) ---
         let rawDate = item.date || item.rawDate || '';
         let displayDate = '-';
         
         if (rawDate && rawDate.includes('-')) {
-            let parts = rawDate.split('-'); // Formato YYYY-MM-DD
+            let parts = rawDate.split('-');
             if (parts.length === 3) {
                 displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
             }
         } else if (rawDate && rawDate.includes('/')) {
-            displayDate = rawDate; // Já formatado
+            displayDate = rawDate;
         } else {
             const mapMonthNum = {
                 'Janeiro': '01', 'Fevereiro': '02', 'Março': '03', 'Abril': '04',
@@ -94,7 +92,6 @@ function renderDashboard() {
         renderPaginationControls(filtered.length, 'paginationContainer');
     }
 
-    // --- CÁLCULO DE SALÁRIO E RENDAS EXTRAS ---
     let salConfig = { base: 0, discount: 0 };
     if (typeof salaryConfigs !== 'undefined' && Array.isArray(salaryConfigs)) {
         let cleanSel = selectedMonth.replace(/\s+/g, '').replace(/\//g, '').toLowerCase();
@@ -128,7 +125,6 @@ function renderDashboard() {
     let salarioLiquidoTotal = salarioLiquidoBase + totalExtraIncome;
     let sobra = salarioLiquidoTotal - totalGastosMes;
 
-    // --- ATUALIZAÇÃO DOS KPIS ---
     let kpiSalario = document.getElementById('kpiSalario');
     if (kpiSalario) kpiSalario.innerText = `R$ ${salarioLiquidoTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
     
@@ -168,7 +164,6 @@ function renderDashboard() {
         }
     }
 
-    // --- ALERTAS AUTOMÁTICOS ---
     let totalCartoesMes = filtered
         .filter(i => i.category === 'Cartão de Crédito')
         .reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
