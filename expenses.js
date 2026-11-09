@@ -1,505 +1,187 @@
 // ============================================================================
-// MÓDULO DE GERENCIAMENTO DE DESPESAS E LANÇAMENTOS - expenses.js (Profissional Brasil)
+// MÓDULO DE DESPESAS E LANÇAMENTOS - expenses.js (Versão Original Integrada)
 // ============================================================================
 
-function addMonthsToMonthName(monthStr, addCount) {
-    const mapNamesBack = {
-        'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4,
-        'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8,
-        'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
-    };
-    const mapMonthsInv = {
-        1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
-        5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
-        9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
-    };
-
-    if (!monthStr || !monthStr.includes('/')) return monthStr;
-    let [mName, yearStr] = monthStr.split('/');
-    let monthNum = mapNamesBack[mName] || 11;
-    let year = parseInt(yearStr, 10) || 2026;
-
-    let totalMonths = (year * 12) + (monthNum - 1) + addCount;
-    let newYear = Math.floor(totalMonths / 12);
-    let newMonthNum = (totalMonths % 12) + 1;
-
-    return `${mapMonthsInv[newMonthNum]}/${newYear}`;
-}
-
-function dateToMonthName(dateStr) {
-    if (!dateStr) return 'Novembro/2026';
-    let parts = dateStr.split('-');
-    if (parts.length < 2) return 'Novembro/2026';
-    
-    let year = parts[0];
-    let monthNum = parseInt(parts[1], 10);
-    
-    const mapMonths = {
-        1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
-        5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
-        9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
-    };
-
-    let monthName = mapMonths[monthNum] || 'Novembro';
-    return `${monthName}/${year}`;
-}
-
-function getProjectedItems() {
-    let projectedItems = [];
-    if (typeof expenses === 'undefined') return projectedItems;
-    
-    expenses.forEach(exp => {
-        let instCount = exp.totalInst || 1;
-        if (!exp.paidMonths) exp.paidMonths = {};
-
-        let baseMonth = exp.date ? dateToMonthName(exp.date) : (exp.startMonth || "Novembro/2026");
-
-        let effectiveStartMonth = baseMonth;
-        if (exp.category === 'Cartão de Crédito' && exp.card && exp.date && typeof cards !== 'undefined') {
-            let targetCard = cards.find(c => c.name === exp.card);
-            if (targetCard && targetCard.closingDay) {
-                let dateParts = exp.date.split('-');
-                if (dateParts.length === 3) {
-                    let buyDay = parseInt(dateParts[2], 10);
-                    let closingDay = parseInt(targetCard.closingDay, 10);
-
-                    if (buyDay > closingDay) {
-                        effectiveStartMonth = addMonthsToMonthName(baseMonth, 1);
-                    }
-                }
-            }
-        }
-
-        for (let i = 0; i < instCount; i++) {
-            let targetMonth = effectiveStartMonth;
-            if (i > 0) {
-                targetMonth = addMonthsToMonthName(effectiveStartMonth, i);
-            }
-            
-            let isPaid = !!exp.paidMonths[targetMonth];
-            projectedItems.push({
-                id: exp.id,
-                parentId: exp.parentId || exp.id,
-                month: targetMonth,
-                desc: exp.desc,
-                category: exp.category,
-                card: exp.card || '-',
-                instStr: exp.category === 'Conta Fixa' || exp.category === 'Contas de Casa' ? 'Mensal' : `${i + 1} de ${instCount}`,
-                amount: exp.amount,
-                total: exp.total,
-                paid: isPaid,
-                inactive: !!exp.inactive
-            });
-        }
-    });
-    return projectedItems;
-}
-
-function openExpenseModal() {
-    let modal = document.getElementById('expenseModal');
-    if (!modal) {
-        createExpenseModalElement();
-        modal = document.getElementById('expenseModal');
-    }
+/**
+ * Abre a modal de criação/edição de despesas.
+ */
+function openExpenseModal(expenseId = null) {
+    const modal = document.getElementById('expenseModal');
     if (!modal) return;
-    
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    
-    let form = document.getElementById('expenseForm');
+
+    // Reseta o formulário
+    const form = document.getElementById('expenseForm');
     if (form) form.reset();
 
-    let expIdEl = document.getElementById('expId');
-    if (expIdEl) expIdEl.value = '';
+    const titleEl = document.getElementById('expenseModalTitle');
+    const idField = document.getElementById('expenseId');
+    
+    if (expenseId) {
+        if (titleEl) titleEl.innerText = "Editar Lançamento";
+        if (idField) idField.value = expenseId;
 
-    let titleEl = document.getElementById('expenseModalTitle');
-    if (titleEl) titleEl.innerText = 'Novo Lançamento';
-
-    let expDate = document.getElementById('expDate');
-    if (expDate) expDate.value = new Date().toISOString().split('T')[0];
-
-    if (typeof populateCardDropdown === 'function') populateCardDropdown();
-    if (typeof toggleCardSelect === 'function') toggleCardSelect();
-    if (typeof handleCategoryChange === 'function') handleCategoryChange();
-    if (typeof updateCardClosingInfo === 'function') updateCardClosingInfo();
-}
-
-function createExpenseModalElement() {
-    let existing = document.getElementById('expenseModal');
-    if (existing) existing.remove();
-
-    let div = document.createElement('div');
-    div.id = 'expenseModal';
-    div.className = "fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4";
-    div.innerHTML = `
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
-            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-                <h3 id="expenseModalTitle" class="text-lg font-bold text-white">Novo Lançamento</h3>
-                <button onclick="closeExpenseModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            <form id="expenseForm" onsubmit="event.preventDefault(); saveExpenseManually();" class="space-y-4">
-                <input type="hidden" id="expId">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label id="dateLabel" class="block text-xs font-medium text-slate-400 mb-1">Data de Vencimento *</label>
-                        <input type="date" id="expDate" required onchange="updateCardClosingInfo()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Categoria *</label>
-                        <select id="expCategory" onchange="handleCategoryChange(); updateCardClosingInfo();" required class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
-                            <option value="">Selecione...</option>
-                            <option value="Cartão de Crédito">Cartão de Crédito</option>
-                            <option value="Conta Fixa">Conta Fixa (Recorrente)</option>
-                            <option value="Contas de Casa">Contas de Casa (Variável / Mensal)</option>
-                            <option value="Empréstimo">Empréstimo</option>
-                            <option value="Assinaturas">Assinaturas</option>
-                            <option value="Mercado">Mercado</option>
-                            <option value="Outros">Outros</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Descrição *</label>
-                    <input type="text" id="expDesc" required placeholder="Ex: Aluguel, Internet MHNET, Conta de Luz..." class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
-                </div>
-                <div id="cardSelectContainer" class="hidden">
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Cartão *</label>
-                    <select id="expCard" onchange="updateCardClosingInfo()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
-                    </select>
-                </div>
-                <div id="cardClosingInfoBox" class="hidden bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-3 text-xs text-indigo-300 flex items-center gap-2">
-                    <i data-lucide="info" class="w-4 h-4 text-indigo-400 shrink-0"></i>
-                    <span id="cardClosingInfoText">Selecione o cartão e a data para ver o status da fatura.</span>
-                </div>
-                <div class="grid grid-cols-3 gap-3">
-                    <div id="installmentsContainer">
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Parcelas / Meses</label>
-                        <input type="number" min="1" id="expInstallmentsCount" value="1" oninput="calculateTotal()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label id="amountLabel" class="block text-xs font-medium text-slate-400 mb-1">Valor (R$)</label>
-                        <input type="number" step="0.01" min="0.01" id="expInstallmentAmount" required oninput="calculateTotal()" placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Valor Total (R$)</label>
-                        <input type="text" id="expTotalAmount" readonly class="w-full bg-slate-800/50 border border-slate-700/50 text-slate-400 text-sm rounded-lg px-3 py-2.5 outline-none cursor-not-allowed">
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeExpenseModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition">Cancelar</button>
-                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-600/20">Salvar Lançamento</button>
-                </div>
-            </form>
-        </div>
-    `;
-    document.body.appendChild(div);
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-}
-
-function handleCategoryChange() {
-    toggleCardSelect();
-    let cat = document.getElementById('expCategory')?.value;
-    let instInput = document.getElementById('expInstallmentsCount');
-    let dateLabel = document.getElementById('dateLabel');
-
-    if (cat === 'Conta Fixa') {
-        if (instInput) {
-            instInput.value = 12; // Projeta por 12 meses do ano
-            instInput.disabled = false;
+        // Procura a despesa nos dados cadastrados
+        let exp = (typeof expenses !== 'undefined') ? expenses.find(e => Number(e.id) === Number(expenseId)) : null;
+        if (exp) {
+            document.getElementById('expenseDesc').value = exp.desc || '';
+            document.getElementById('expenseAmount').value = exp.amount || '';
+            document.getElementById('expenseCategory').value = exp.category || 'Outros';
+            document.getElementById('expenseCard').value = exp.card || 'Nenhum';
+            document.getElementById('expenseInstallments').value = exp.installments || 1;
+            document.getElementById('expenseMonth').value = exp.month || document.getElementById('globalMonth')?.value || 'Novembro/2026';
+            if (document.getElementById('expenseDate')) {
+                document.getElementById('expenseDate').value = exp.date || '';
+            }
         }
-        if (dateLabel) dateLabel.innerText = "Data / Vencimento Base *";
-    } else if (cat === 'Contas de Casa') {
-        if (instInput) {
-            instInput.value = 1; // Mensal avulso sem amarrar parcelas longas
-            instInput.disabled = true;
+    } else {
+        if (titleEl) titleEl.innerText = "Novo Lançamento";
+        if (idField) idField.value = '';
+        if (document.getElementById('expenseMonth')) {
+            document.getElementById('expenseMonth').value = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : 'Novembro/2026';
         }
-        if (dateLabel) dateLabel.innerText = "Data de Vencimento *";
-    } else {
-        if (instInput) instInput.disabled = false;
-        if (dateLabel) dateLabel.innerText = "Data da Compra / Vencimento *";
     }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
 }
 
-function updateCardClosingInfo() {
-    let catSelect = document.getElementById('expCategory');
-    let cardSelect = document.getElementById('expCard');
-    let dateInput = document.getElementById('expDate');
-    let infoBox = document.getElementById('cardClosingInfoBox');
-    let infoText = document.getElementById('cardClosingInfoText');
-
-    if (!catSelect || !infoBox || !infoText) return;
-
-    if (catSelect.value !== 'Cartão de Crédito') {
-        infoBox.classList.add('hidden');
-        return;
-    }
-
-    infoBox.classList.remove('hidden');
-
-    let cardName = cardSelect ? cardSelect.value : '';
-    let dateVal = dateInput ? dateInput.value : '';
-
-    if (!cardName || typeof cards === 'undefined') {
-        infoText.innerText = "Selecione um cartão para verificar o fechamento.";
-        return;
-    }
-
-    let targetCard = cards.find(c => c.name === cardName);
-    if (!targetCard || !targetCard.closingDay) {
-        infoText.innerText = "Este cartão não possui dia de fechamento configurado.";
-        return;
-    }
-
-    let closingDay = parseInt(targetCard.closingDay, 10);
-
-    if (!dateVal) {
-        infoText.innerText = `Este cartão fecha dia ${closingDay}. Informe a data da compra.`;
-        return;
-    }
-
-    let dateParts = dateVal.split('-');
-    if (dateParts.length !== 3) {
-        infoText.innerText = `Este cartão fecha dia ${closingDay}.`;
-        return;
-    }
-
-    let buyDay = parseInt(dateParts[2], 10);
-
-    if (buyDay > closingDay) {
-        infoText.innerHTML = `💳 Fechamento dia <strong>${closingDay}</strong>: Como a compra é dia <strong>${buyDay}</strong> (após o fechamento), a 1ª parcela vai para o <strong>mês seguinte</strong>.`;
-        infoBox.className = "bg-amber-950/40 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-300 flex items-center gap-2";
-    } else {
-        infoText.innerHTML = `💳 Fechamento dia <strong>${closingDay}</strong>: Como a compra é dia <strong>${buyDay}</strong> (antes ou no fechamento), a 1ª parcela entra no <strong>mês atual</strong>.`;
-        infoBox.className = "bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-3 text-xs text-indigo-300 flex items-center gap-2";
-    }
-}
-
-function toggleCardSelect() {
-    let catSelect = document.getElementById('expCategory');
-    let container = document.getElementById('cardSelectContainer');
-    if (!catSelect || !container) return;
-
-    if (catSelect.value === 'Cartão de Crédito') {
-        container.classList.remove('hidden');
-    } else {
-        container.classList.add('hidden');
-    }
-}
-
-function populateCardDropdown() {
-    let cardSelect = document.getElementById('expCard');
-    if (!cardSelect) return;
-    cardSelect.innerHTML = '';
-
-    let userCards = typeof cards !== 'undefined' ? cards : [];
-    if (userCards.length === 0) {
-        cardSelect.innerHTML = `<option value="Geral">Cartão Geral</option>`;
-        return;
-    }
-
-    userCards.forEach(c => {
-        let opt = document.createElement('option');
-        opt.value = c.name;
-        opt.innerText = c.name;
-        cardSelect.appendChild(opt);
-    });
-}
-
-function openExpenseModalWithCategory(cat) {
-    openExpenseModal();
-    let catEl = document.getElementById('expCategory');
-    if (catEl) {
-        catEl.value = cat;
-        handleCategoryChange();
-        updateCardClosingInfo();
-    }
-}
-
-function openExpenseModalForCard(cardName) {
-    openExpenseModal();
-    let catEl = document.getElementById('expCategory');
-    if (catEl) {
-        catEl.value = 'Cartão de Crédito';
-        handleCategoryChange();
-    }
-    let cardSelect = document.getElementById('expCard');
-    if (cardSelect) {
-        cardSelect.value = cardName;
-    }
-    updateCardClosingInfo();
-}
-
+/**
+ * Fecha a modal de despesas.
+ */
 function closeExpenseModal() {
-    let modal = document.getElementById('expenseModal');
+    const modal = document.getElementById('expenseModal');
     if (modal) {
         modal.classList.remove('flex');
         modal.classList.add('hidden');
     }
-    let form = document.getElementById('expenseForm');
-    if (form) form.reset();
 }
 
-function calculateTotal() {
-    let count = parseInt(document.getElementById('expInstallmentsCount').value) || 1;
-    let amt = parseFloat(document.getElementById('expInstallmentAmount').value) || 0;
-    let totalEl = document.getElementById('expTotalAmount');
-    if (totalEl) totalEl.value = (count * amt).toFixed(2);
-}
+/**
+ * Salva uma despesa (nova ou editada) a partir do formulário da modal.
+ */
+function saveExpense(event) {
+    if (event) event.preventDefault();
 
-function editExpense(parentId) {
-    if (typeof expenses === 'undefined') return;
-    let exp = expenses.find(i => Number(i.parentId || i.id) === Number(parentId));
-    if (!exp) return;
-    
-    openExpenseModal();
+    let id = document.getElementById('expenseId')?.value;
+    let desc = document.getElementById('expenseDesc')?.value.trim();
+    let amount = parseFloat(document.getElementById('expenseAmount')?.value) || 0;
+    let category = document.getElementById('expenseCategory')?.value || 'Outros';
+    let card = document.getElementById('expenseCard')?.value || 'Nenhum';
+    let installments = parseInt(document.getElementById('expenseInstallments')?.value) || 1;
+    let month = document.getElementById('expenseMonth')?.value || 'Novembro/2026';
+    let date = document.getElementById('expenseDate')?.value || '';
 
-    let expId = document.getElementById('expId');
-    if (expId) expId.value = String(exp.parentId || exp.id);
-
-    let titleEl = document.getElementById('expenseModalTitle');
-    if (titleEl) titleEl.innerText = 'Editar Lançamento';
-
-    let expDate = document.getElementById('expDate');
-    if (expDate && exp.date) {
-        expDate.value = exp.date;
-    }
-
-    let expDesc = document.getElementById('expDesc');
-    if (expDesc) expDesc.value = exp.desc || '';
-
-    let expCat = document.getElementById('expCategory');
-    if (expCat) expCat.value = exp.category || '';
-    
-    handleCategoryChange();
-    
-    let expCard = document.getElementById('expCard');
-    if (expCard && exp.card) expCard.value = exp.card;
-    
-    let expInstCount = document.getElementById('expInstallmentsCount');
-    if (expInstCount) expInstCount.value = exp.totalInst || 1;
-
-    let expInstAmt = document.getElementById('expInstallmentAmount');
-    if (expInstAmt) expInstAmt.value = exp.amount || 0;
-    
-    calculateTotal();
-    updateCardClosingInfo();
-}
-
-function saveExpenseManually() {
-    let editIdInput = document.getElementById('expId');
-    let editId = editIdInput ? editIdInput.value.trim() : '';
-    
-    let dateValue = document.getElementById('expDate').value;
-    let startMonth = dateToMonthName(dateValue);
-    let desc = document.getElementById('expDesc').value.trim();
-    let category = document.getElementById('expCategory').value.trim();
-    let card = category === 'Cartão de Crédito' ? document.getElementById('expCard').value : category;
-    let totalInst = parseInt(document.getElementById('expInstallmentsCount').value) || 1;
-    let amount = parseFloat(document.getElementById('expInstallmentAmount').value) || 0;
-    let total = totalInst * amount;
-
-    if (!desc || !amount || !category || !dateValue) {
-        if (typeof showToast === 'function') showToast("Preencha a data, categoria, descrição e valor.", "error");
-        else alert("Preencha a data, categoria, descrição e valor.");
+    if (!desc || amount <= 0) {
+        if (typeof showToast === 'function') showToast("Preencha a descrição e um valor válido.", "error");
+        else alert("Preencha a descrição e um valor válido.");
         return;
     }
 
     if (typeof expenses === 'undefined') window.expenses = [];
 
-    let isEditing = editId !== '' && editId !== 'null' && editId !== 'undefined';
-
-    if (isEditing) {
-        let expIndex = expenses.findIndex(i => Number(i.parentId || i.id) === Number(editId));
-        if (expIndex !== -1) {
-            expenses[expIndex].startMonth = startMonth;
-            expenses[expIndex].date = dateValue;
-            expenses[expIndex].desc = desc;
-            expenses[expIndex].category = category;
-            expenses[expIndex].card = card;
-            expenses[expIndex].totalInst = totalInst;
-            expenses[expIndex].amount = amount;
-            expenses[expIndex].total = total;
-            if (typeof showToast === 'function') showToast("Lançamento atualizado com sucesso!", "success");
+    if (id) {
+        // Edição de despesa existente
+        let index = expenses.findIndex(e => Number(e.id) === Number(id));
+        if (index !== -1) {
+            expenses[index] = {
+                ...expenses[index],
+                desc,
+                amount,
+                category,
+                card,
+                installments,
+                month,
+                date
+            };
         }
     } else {
-        let newId = expenses.length > 0 ? Math.max(...expenses.map(i => Number(i.id || i.parentId || 0))) + 1 : 1;
+        // Criação de nova despesa
+        let newId = expenses.length > 0 ? Math.max(...expenses.map(e => e.id || 0)) + 1 : 1;
         expenses.push({
             id: newId,
             parentId: newId,
-            startMonth,
-            date: dateValue,
             desc,
+            amount,
             category,
             card,
-            amount,
-            totalInst,
-            total,
-            paidMonths: {},
-            inactive: false
+            installments,
+            month,
+            date,
+            paid: false,
+            paidMonths: {}
         });
-        if (typeof showToast === 'function') showToast("Novo lançamento adicionado com sucesso!", "success");
     }
 
     if (typeof saveData === 'function') saveData();
     closeExpenseModal();
     if (typeof renderApp === 'function') renderApp();
+    if (typeof showToast === 'function') showToast("Lançamento salvo com sucesso!", "success");
 }
 
-function deleteExpense(parentId) {
-    let doDelete = () => {
-        window.expenses = expenses.filter(i => Number(i.parentId || i.id) !== Number(parentId));
-        if (typeof saveData === 'function') saveData();
-        if (typeof renderApp === 'function') renderApp();
-        if (typeof showToast === 'function') showToast("Lançamento excluído com sucesso!", "success");
-    };
+/**
+ * Edita uma despesa chamando a modal com o ID.
+ */
+function editExpense(id) {
+    openExpenseModal(id);
+}
 
-    if (typeof showConfirmModal === 'function') {
-        showConfirmModal('Deseja excluir este lançamento e suas parcelas?', doDelete);
-    } else {
-        if (confirm('Deseja excluir este lançamento e suas parcelas?')) doDelete();
+/**
+ * Exclui uma despesa pelo ID.
+ */
+function deleteExpense(id) {
+    if (!confirm("Tem certeza que deseja excluir este lançamento?")) return;
+
+    if (typeof expenses !== 'undefined') {
+        window.expenses = expenses.filter(e => Number(e.id) !== Number(id) && Number(e.parentId) !== Number(id));
     }
-}
 
-function togglePaidStatus(parentId, month) {
-    let exp = expenses.find(i => Number(i.parentId || i.id) === Number(parentId));
-    if (exp) {
-        if (!exp.paidMonths) exp.paidMonths = {};
-        exp.paidMonths[month] = !exp.paidMonths[month];
-        if (typeof saveData === 'function') saveData();
-        if (typeof renderApp === 'function') renderApp();
-    }
-}
-
-function confirmClearAllData() {
-    if (typeof showConfirmModal === 'function') {
-        showConfirmModal('Tem certeza absoluta que deseja apagar TODOS os lançamentos?', () => clearAllData());
-    } else {
-        if (confirm('Tem certeza absoluta que deseja apagar TODOS os lançamentos?')) clearAllData();
-    }
-}
-
-function clearAllData() {
-    window.expenses = [];
     if (typeof saveData === 'function') saveData();
     if (typeof renderApp === 'function') renderApp();
+    if (typeof showToast === 'function') showToast("Lançamento excluído com sucesso.", "success");
+}
+
+/**
+ * Abre a modal de despesas pré-selecionando um cartão específico.
+ */
+function openExpenseModalForCard(cardName) {
+    openExpenseModal();
+    let cardSelect = document.getElementById('expenseCard');
+    if (cardSelect) {
+        cardSelect.value = cardName;
+    }
+    let catSelect = document.getElementById('expenseCategory');
+    if (catSelect) {
+        catSelect.value = 'Cartão de Crédito';
+    }
+}
+
+/**
+ * Alterna o status de pagamento (pago/pendente) de uma despesa ou parcela projetada.
+ */
+function togglePaidStatus(parentId, month) {
+    if (typeof expenses === 'undefined') return;
+
+    let exp = expenses.find(e => Number(e.id) === Number(parentId) || Number(e.parentId) === Number(parentId));
+    if (exp) {
+        if (!exp.paidMonths) exp.paidMonths = {};
+        let current = !!exp.paidMonths[month];
+        exp.paidMonths[month] = !current;
+
+        // Se for parcela única ou correspondente principal
+        if (exp.month === month) {
+            exp.paid = !exp.paid;
+        }
+
+        if (typeof saveData === 'function') saveData();
+        if (typeof renderApp === 'function') renderApp();
+    }
 }
 
 // ================= EXPOSIÇÃO GLOBAL =================
-window.getProjectedItems = getProjectedItems;
 window.openExpenseModal = openExpenseModal;
-window.openExpenseModalWithCategory = openExpenseModalWithCategory;
-window.openExpenseModalForCard = openExpenseModalForCard;
 window.closeExpenseModal = closeExpenseModal;
-window.calculateTotal = calculateTotal;
+window.saveExpense = saveExpense;
 window.editExpense = editExpense;
-window.saveExpenseManually = saveExpenseManually;
 window.deleteExpense = deleteExpense;
+window.openExpenseModalForCard = openExpenseModalForCard;
 window.togglePaidStatus = togglePaidStatus;
-window.confirmClearAllData = confirmClearAllData;
-window.clearAllData = clearAllData;
-window.toggleCardSelect = toggleCardSelect;
-window.populateCardDropdown = populateCardDropdown;
-window.addMonthsToMonthName = addMonthsToMonthName;
-window.dateToMonthName = dateToMonthName;
-window.updateCardClosingInfo = updateCardClosingInfo;
-window.handleCategoryChange = handleCategoryChange;
