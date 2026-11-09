@@ -6,19 +6,16 @@
  * Renderiza o painel principal (Dashboard & Extrato):
  * - Filtra as despesas projetadas com base no mês selecionado, categoria e termo de busca.
  * - Aplica paginação (40 itens por página) e cores dinâmicas nas categorias.
- * - Popula a tabela de lançamentos na interface exibindo a data real da compra (DD/MM/AAAA).
+ * - Popula a tabela de lançamentos na interface.
  * - Calcula o salário líquido total e os KPIs.
  */
 function renderDashboard() {
-    // Captura o mês selecionado globalmente no topo da aplicação
     const selectedMonth = (typeof getSelectedMonth === 'function') ? getSelectedMonth() : (document.getElementById('globalMonth')?.value || 'Novembro/2026');
     const categoryFilter = document.getElementById('filterCategory').value;
     const search = document.getElementById('searchBox').value.toLowerCase();
 
-    // Pega todos os itens projetados vindos do módulo expenses.js
     let projectedItems = getProjectedItems();
 
-    // Filtra os itens com base no mês, categoria selecionada e texto de busca
     let filtered = projectedItems.filter(item => {
         let matchMonth = item.month === selectedMonth;
         let matchCat = categoryFilter ? item.category === categoryFilter : true;
@@ -46,19 +43,15 @@ function renderDashboard() {
         if (!item.paid) totalPendenteMes += item.amount;
     });
 
-    // Renderiza cada linha na tabela do Dashboard
     paginatedFiltered.forEach(item => {
         let tr = document.createElement('tr');
         tr.className = "hover:bg-slate-800/40 transition";
         
-        // Cores dinâmicas para o badge da categoria
+        // Cores dinâmicas para a categoria
         let catClass = (typeof getCategoryClass === 'function') ? getCategoryClass(item.category) : 'cat-outro';
 
-        // Exibe a data real da compra formatada (DD/MM/AAAA) enviada pelo expenses.js
-        let displayDate = item.date || '-';
-
         tr.innerHTML = `
-            <td class="py-3 px-4 text-xs font-semibold text-indigo-300">${displayDate}</td>
+            <td class="py-3 px-4 text-xs text-slate-400">${item.month}</td>
             <td class="py-3 px-4 font-medium text-white">${item.desc}</td>
             <td class="py-3 px-4"><span class="badge-categoria ${catClass}">${item.category}</span></td>
             <td class="py-3 px-4 text-slate-300">${item.card}</td>
@@ -99,7 +92,7 @@ function renderDashboard() {
 
     let salarioLiquidoBase = salConfig.base - salConfig.discount;
 
-    // Leitura e soma de todas as Rendas Extras ativas para o mês selecionado
+    // Leitura e soma de todas as Rendas Extras ativas para o mês selecionado (com suporte a propagação)
     let totalExtraIncome = 0;
     if (typeof getActiveIncomesForMonth === 'function') {
         let activeIncs = getActiveIncomesForMonth(selectedMonth);
@@ -158,7 +151,7 @@ function renderDashboard() {
         }
     }
 
-    // Verificação de alertas automáticos (Cartões estourados, gastos altos e sobra positiva)
+    // Verificação de alertas automáticos 100% responsivos para mobile
     let totalCartoesMes = filtered
         .filter(i => i.category === 'Cartão de Crédito')
         .reduce((acc, curr) => acc + curr.amount, 0);
@@ -439,7 +432,7 @@ function renderHouseView() {
         let catClass = (typeof getCategoryClass === 'function') ? getCategoryClass(item.category) : 'cat-outro';
 
         tr.innerHTML = `
-            <td class="py-3 px-4 text-xs text-slate-400">${item.date || item.month}</td>
+            <td class="py-3 px-4 text-xs text-slate-400">${item.month}</td>
             <td class="py-3 px-4 text-xs text-slate-300">Data Base</td>
             <td class="py-3 px-4 font-medium text-white">${item.desc}</td>
             <td class="py-3 px-4"><span class="badge-categoria ${catClass}">${item.category}</span></td>
