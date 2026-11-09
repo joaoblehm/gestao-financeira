@@ -87,7 +87,8 @@ function getProjectedItems() {
                 instStr: `${i + 1} de ${instCount}`,
                 amount: exp.amount,
                 total: exp.total,
-                paid: isPaid
+                paid: isPaid,
+                inactive: !!exp.inactive // Suporte para status de Assinaturas Inativas
             });
         }
     });
@@ -139,7 +140,7 @@ function createExpenseModalElement() {
                 <input type="hidden" id="expId">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Data da Compra *</label>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Data da Compra / Vencimento *</label>
                         <input type="date" id="expDate" required onchange="updateCardClosingInfo()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                     </div>
                     <div>
@@ -147,15 +148,17 @@ function createExpenseModalElement() {
                         <select id="expCategory" onchange="toggleCardSelect(); updateCardClosingInfo();" required class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                             <option value="">Selecione...</option>
                             <option value="Cartão de Crédito">Cartão de Crédito</option>
-                            <option value="Mercado">Mercado</option>
-                            <option value="Contas de Casa">Contas de Casa</option>
+                            <option value="Contas de Casa">Contas de Casa (Fixa)</option>
+                            <option value="Empréstimo">Empréstimo</option>
                             <option value="Assinaturas">Assinaturas</option>
+                            <option value="Mercado">Mercado</option>
+                            <option value="Outros">Outros</option>
                         </select>
                     </div>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-400 mb-1">Descrição *</label>
-                    <input type="text" id="expDesc" required placeholder="Ex: Supermercado, Aluguel, Conta de Luz..." class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
+                    <input type="text" id="expDesc" required placeholder="Ex: Conta de Luz, Aluguel, Netflix, Mercado..." class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                 </div>
                 <div id="cardSelectContainer" class="hidden">
                     <label class="block text-xs font-medium text-slate-400 mb-1">Cartão *</label>
@@ -405,7 +408,8 @@ function saveExpenseManually() {
             amount,
             totalInst,
             total,
-            paidMonths: {}
+            paidMonths: {},
+            inactive: false
         });
         if (typeof showToast === 'function') showToast("Novo lançamento adicionado com sucesso!", "success");
     }
