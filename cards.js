@@ -1,5 +1,5 @@
 // ============================================================================
-// MÓDULO DE GERENCIAMENTO DE CARTÕES DE CRÉDITO - cards.js
+// MÓDULO DE GERENCIAMENTO DE CARTÕES DE CRÉDITO - cards.js (Com Data Real Exibida)
 // ============================================================================
 
 function openCardModal(id = null) {
@@ -173,7 +173,7 @@ function getCardLimitStatus(cardName, currentMonth, cardLimit) {
 
 /**
  * Renderiza os cards de crédito na aba "Cartões & Faturas" com suporte a ciclos 
- * que fecham no fim do mês e vencem no início do mês seguinte.
+ * e exibição da data real do lançamento.
  */
 function renderCards() {
     let grid = document.getElementById('cardsGrid');
@@ -216,7 +216,6 @@ function renderCards() {
 
     let isFutureMonth = selDateObj > realDateObj;
     let isPastMonth = selDateObj < realDateObj;
-    let isCurrentMonth = selDateObj.getTime() === realDateObj.getTime();
 
     cards.forEach(card => {
         let monthlyCardItems = projectedItems.filter(i => i.card === card.name && i.month === selectedMonth);
@@ -230,7 +229,6 @@ function renderCards() {
         let cardClasses = "bg-slate-900 border rounded-xl p-5 flex flex-col justify-between shadow-sm transition relative overflow-hidden";
         let badgeHtml = '';
 
-        // Validação estrita por mês considerando fechamento no fim e vencimento no início
         if (isCardQuitado) {
             cardClasses += " border-emerald-500/80 shadow-emerald-950/40 shadow-lg";
             badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 w-fit"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> FATURA QUITADA (${selectedMonth})</span>`;
@@ -241,14 +239,9 @@ function renderCards() {
             cardClasses += " border-rose-500/80 shadow-rose-950/40 shadow-lg";
             badgeHtml = `<span class="inline-block mt-2 px-2.5 py-1 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">⚠️ PENDENTE (Mês Anterior)</span>`;
         } else {
-            // Mês atual real: avalia se está no período de fechamento até o vencimento (mesmo virando o mês)
             let isVencidoOuHoje = (diaAtualReal >= dueDay);
-            
-            // Se o fechamento é no fim do mês (ex: 30) e vencimento no início (ex: 5)
             let isFechado = false;
             if (closingDay > dueDay) {
-                // Ex: fecha dia 30 e vence dia 5 do mês seguinte.
-                // Está fechado a partir do dia do fechamento até o final do mês, OU do dia 1 até o vencimento.
                 isFechado = (diaAtualReal >= closingDay || diaAtualReal < dueDay);
             } else {
                 isFechado = (diaAtualReal >= closingDay && diaAtualReal < dueDay);
@@ -278,9 +271,13 @@ function renderCards() {
             
             monthlyCardItems.forEach(item => {
                 let itemQuitado = item.paid || isCardQuitado;
+                // Exibe a data real da compra (ex: 08/11/2026) nos itens do cartão
+                let itemDate = item.date || item.rawDate || 'Data';
+
                 itemsHtml += `
                     <div class="flex justify-between items-center bg-slate-800/40 p-2.5 rounded-lg text-xs border border-slate-800">
                         <div>
+                            <div class="text-[10px] text-indigo-400 font-semibold mb-0.5">${itemDate}</div>
                             <div class="font-medium text-white">${item.desc}</div>
                             <div class="text-slate-400 text-[10px] mt-0.5">Parcela: <span class="text-indigo-400 font-semibold">${item.instStr}</span></div>
                         </div>
