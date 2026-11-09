@@ -1,9 +1,9 @@
 // ============================================================================
-// MÓDULO DE ANÁLISE AVANÇADA E FLUXO - analytics.js (Corrigido e Preciso)
+// MÓDULO DE ANÁLISE AVANÇADA E FLUXO - analytics.js (Filtro Direto e Preciso)
 // ============================================================================
 
 window.analyticsChartInstance = null;
-let currentSelectedDay = ""; // Guarda o dia selecionado (ex: "08")
+let currentSelectedDay = ""; // Guarda o dia selecionado (ex: "07")
 
 function renderAnalytics() {
     const container = document.getElementById('analyticsContainer');
@@ -137,7 +137,9 @@ function renderAnalytics() {
 
 function toggleDayPicker() {
     const popover = document.getElementById('dayPickerPopover');
-    if (popover) popover.classList.toggle('hidden');
+    if (popover) {
+        popover.classList.toggle('hidden');
+    }
 }
 
 function renderPickerDays() {
@@ -182,12 +184,12 @@ function toggleAnlySubFilters() {
     let container = document.getElementById('anlySubFilterContainer');
     if (!container) return;
 
-    if (mode === 'daily' || mode === 'weekly') {
+    if (mode === 'daily') {
         container.style.display = 'block';
-        if (mode === 'weekly') {
-            document.getElementById('anlyDayPickerText').innerText = "Todas as Semanas";
-            currentSelectedDay = "";
-        }
+    } else if (mode === 'weekly') {
+        container.style.display = 'block';
+        document.getElementById('anlyDayPickerText').innerText = "Todas as Semanas";
+        currentSelectedDay = "";
     } else {
         container.style.display = 'none';
         currentSelectedDay = "";
@@ -202,22 +204,20 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Extrai o dia com precisão absoluta de qualquer formato de data gravado
-function extractExactDay(item) {
-    let rawDate = item.date || item.rawDate || '';
-    let str = String(rawDate).trim();
+// Função ultra-robusta para capturar o dia exato do lançamento (seja "07", "7", "2026-11-07" ou "07/11")
+function getDayNumber(item) {
+    // Tenta pegar de item.date ou de qualquer outra propriedade de dia
+    let raw = item.date || item.day || '01';
+    let str = String(raw).trim();
     if (str.includes('-')) {
         let parts = str.split('-');
-        if (parts.length >= 3) return parts[2].padStart(2, '0');
+        return parts[parts.length - 1].padStart(2, '0');
     }
     if (str.includes('/')) {
         let parts = str.split('/');
         return parts[0].padStart(2, '0');
     }
-    if (str.length > 0) {
-        return str.padStart(2, '0');
-    }
-    return '';
+    return str.padStart(2, '0');
 }
 
 function updateAnalyticsView() {
@@ -228,7 +228,7 @@ function updateAnalyticsView() {
 
     let dataset = [];
 
-    // Pega todos os itens projetados do sistema
+    // Pega direto os itens projetados do mês ativo na aplicação principal
     let projected = [];
     if (typeof getProjectedItems === 'function') {
         projected = getProjectedItems();
@@ -238,16 +238,19 @@ function updateAnalyticsView() {
 
     if (typeFilter === 'expenses' || typeFilter === 'all') {
         projected.forEach(item => {
-            let itemDay = extractExactDay(item);
-            dataset.push({
-                day: itemDay || '01',
-                month: item.month || selectedMonth,
-                desc: item.desc,
-                category: item.category,
-                card: item.card || 'Geral',
-                amount: Number(item.amount) || 0,
-                type: 'Despesa'
-            });
+            // Garante que pertence ao mês selecionado
+            if (item.month === selectedMonth) {
+                let dNum = getDayNumber(item);
+                dataset.push({
+                    day: dNum,
+                    month: item.month,
+                    desc: item.desc,
+                    category: item.category,
+                    card: item.card || 'Geral',
+                    amount: Number(item.amount) || 0,
+                    type: 'Despesa'
+                });
+            }
         });
     }
 
@@ -259,9 +262,9 @@ function updateAnalyticsView() {
             incomes = extraIncomes;
         }
         incomes.forEach(inc => {
-            let incDay = extractExactDay(inc);
+            let dNum = getDayNumber(inc);
             dataset.push({
-                day: incDay || '01',
+                day: dNum,
                 month: selectedMonth,
                 desc: inc.desc || inc.name || 'Entrada',
                 category: inc.category || 'Salário / Renda',
@@ -272,21 +275,14 @@ function updateAnalyticsView() {
         });
     }
 
-    // Filtro principal por Mês Ativo (se não houver dia específico selecionado)
-    if (!currentSelectedDay) {
-        dataset = dataset.filter(item => item.month === selectedMonth);
-    } else {
-        // Se houver dia específico selecionado, filtra pelo dia e garante que o mês bate
-        dataset = dataset.filter(item => {
-            let matchDay = String(item.day) === String(currentSelectedDay);
-            let matchMonth = item.month === selectedMonth;
-            return matchDay && matchMonth;
-        });
-    }
-
-    // Filtro por Categoria
+    // Filtra por Categoria se houver
     if (categoryFilter) {
         dataset = dataset.filter(item => item.category.toLowerCase().includes(categoryFilter.toLowerCase()));
+    }
+
+    // Se o usuário selecionou um dia específico no calendário, filtra estritamente por ele
+    if (currentSelectedDay && viewMode === 'daily') {
+        dataset = dataset.filter(item => String(item.day) === String(currentSelectedDay));
     }
 
     let totalSum = dataset.reduce((acc, curr) => acc + curr.amount, 0);
