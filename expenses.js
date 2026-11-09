@@ -1,5 +1,5 @@
 // ============================================================================
-// MÓDULO DE GERENCIAMENTO DE DESPESAS E LANÇAMENTOS - expenses.js
+// MÓDULO DE GERENCIAMENTO DE DESPESAS E LANÇAMENTOS - expenses.js (Profissional Brasil)
 // ============================================================================
 
 function addMonthsToMonthName(monthStr, addCount) {
@@ -84,11 +84,11 @@ function getProjectedItems() {
                 desc: exp.desc,
                 category: exp.category,
                 card: exp.card || '-',
-                instStr: `${i + 1} de ${instCount}`,
+                instStr: exp.category === 'Conta Fixa' || exp.category === 'Contas de Casa' ? 'Mensal' : `${i + 1} de ${instCount}`,
                 amount: exp.amount,
                 total: exp.total,
                 paid: isPaid,
-                inactive: !!exp.inactive // Suporte para status de Assinaturas Inativas
+                inactive: !!exp.inactive
             });
         }
     });
@@ -120,6 +120,7 @@ function openExpenseModal() {
 
     if (typeof populateCardDropdown === 'function') populateCardDropdown();
     if (typeof toggleCardSelect === 'function') toggleCardSelect();
+    if (typeof handleCategoryChange === 'function') handleCategoryChange();
     if (typeof updateCardClosingInfo === 'function') updateCardClosingInfo();
 }
 
@@ -140,15 +141,16 @@ function createExpenseModalElement() {
                 <input type="hidden" id="expId">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Data da Compra / Vencimento *</label>
+                        <label id="dateLabel" class="block text-xs font-medium text-slate-400 mb-1">Data de Vencimento *</label>
                         <input type="date" id="expDate" required onchange="updateCardClosingInfo()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1">Categoria *</label>
-                        <select id="expCategory" onchange="toggleCardSelect(); updateCardClosingInfo();" required class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
+                        <select id="expCategory" onchange="handleCategoryChange(); updateCardClosingInfo();" required class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                             <option value="">Selecione...</option>
                             <option value="Cartão de Crédito">Cartão de Crédito</option>
-                            <option value="Contas de Casa">Contas de Casa (Fixa)</option>
+                            <option value="Conta Fixa">Conta Fixa (Recorrente)</option>
+                            <option value="Contas de Casa">Contas de Casa (Variável / Mensal)</option>
                             <option value="Empréstimo">Empréstimo</option>
                             <option value="Assinaturas">Assinaturas</option>
                             <option value="Mercado">Mercado</option>
@@ -158,7 +160,7 @@ function createExpenseModalElement() {
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-400 mb-1">Descrição *</label>
-                    <input type="text" id="expDesc" required placeholder="Ex: Conta de Luz, Aluguel, Netflix, Mercado..." class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
+                    <input type="text" id="expDesc" required placeholder="Ex: Aluguel, Internet MHNET, Conta de Luz..." class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                 </div>
                 <div id="cardSelectContainer" class="hidden">
                     <label class="block text-xs font-medium text-slate-400 mb-1">Cartão *</label>
@@ -170,12 +172,12 @@ function createExpenseModalElement() {
                     <span id="cardClosingInfoText">Selecione o cartão e a data para ver o status da fatura.</span>
                 </div>
                 <div class="grid grid-cols-3 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Parcelas</label>
+                    <div id="installmentsContainer">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Parcelas / Meses</label>
                         <input type="number" min="1" id="expInstallmentsCount" value="1" oninput="calculateTotal()" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Valor Parcela (R$)</label>
+                        <label id="amountLabel" class="block text-xs font-medium text-slate-400 mb-1">Valor (R$)</label>
                         <input type="number" step="0.01" min="0.01" id="expInstallmentAmount" required oninput="calculateTotal()" placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500">
                     </div>
                     <div>
@@ -192,6 +194,30 @@ function createExpenseModalElement() {
     `;
     document.body.appendChild(div);
     if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function handleCategoryChange() {
+    toggleCardSelect();
+    let cat = document.getElementById('expCategory')?.value;
+    let instInput = document.getElementById('expInstallmentsCount');
+    let dateLabel = document.getElementById('dateLabel');
+
+    if (cat === 'Conta Fixa') {
+        if (instInput) {
+            instInput.value = 12; // Projeta por 12 meses do ano
+            instInput.disabled = false;
+        }
+        if (dateLabel) dateLabel.innerText = "Data / Vencimento Base *";
+    } else if (cat === 'Contas de Casa') {
+        if (instInput) {
+            instInput.value = 1; // Mensal avulso sem amarrar parcelas longas
+            instInput.disabled = true;
+        }
+        if (dateLabel) dateLabel.innerText = "Data de Vencimento *";
+    } else {
+        if (instInput) instInput.disabled = false;
+        if (dateLabel) dateLabel.innerText = "Data da Compra / Vencimento *";
+    }
 }
 
 function updateCardClosingInfo() {
@@ -284,7 +310,7 @@ function openExpenseModalWithCategory(cat) {
     let catEl = document.getElementById('expCategory');
     if (catEl) {
         catEl.value = cat;
-        toggleCardSelect();
+        handleCategoryChange();
         updateCardClosingInfo();
     }
 }
@@ -294,7 +320,7 @@ function openExpenseModalForCard(cardName) {
     let catEl = document.getElementById('expCategory');
     if (catEl) {
         catEl.value = 'Cartão de Crédito';
-        toggleCardSelect();
+        handleCategoryChange();
     }
     let cardSelect = document.getElementById('expCard');
     if (cardSelect) {
@@ -344,7 +370,7 @@ function editExpense(parentId) {
     let expCat = document.getElementById('expCategory');
     if (expCat) expCat.value = exp.category || '';
     
-    toggleCardSelect();
+    handleCategoryChange();
     
     let expCard = document.getElementById('expCard');
     if (expCard && exp.card) expCard.value = exp.card;
@@ -476,3 +502,4 @@ window.populateCardDropdown = populateCardDropdown;
 window.addMonthsToMonthName = addMonthsToMonthName;
 window.dateToMonthName = dateToMonthName;
 window.updateCardClosingInfo = updateCardClosingInfo;
+window.handleCategoryChange = handleCategoryChange;
